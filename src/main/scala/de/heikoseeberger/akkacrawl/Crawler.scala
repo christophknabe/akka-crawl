@@ -39,7 +39,8 @@ object Crawler {
     responses: Source[(HttpResponse, Any)],
     requests:  Sink[(HttpRequest, Any)]
   )(implicit fm: FlowMaterializer): Future[HttpResponse] = {
-    val request = HttpRequest(uri = url.getPath, headers = List(Host(url.getHost)))
+    val path = if (url.getPath == "") "/" else url.getPath
+    val request = HttpRequest(uri = path, headers = List(Host(url.getHost)))
     Source(List(request))
       .map(_ -> None)
       .runWith(requests)
@@ -49,7 +50,7 @@ object Crawler {
   }
 
   /**A RegEx pattern for extracting HTTP links from a HTML page.*/
-  val linkPattern = """"(http://[^"]+)"""".r
+  val linkPattern = """"(http://[^" ]+)"""".r
 
 }
 
@@ -90,9 +91,10 @@ class Crawler(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDurati
     case HttpResponse(StatusCodes.OK, _, entity, _) =>
       log.debug("Successfully got [{}]", url)
       context.setReceiveTimeout(Duration.Undefined)
-      for(chunk <- entity.dataBytes){
-        for(matched<-linkPattern.findAllMatchIn(chunk.utf8String)){
-          println("Link: " + matched.group(1))
+      for (chunk <- entity.dataBytes) {
+        for (matched <- linkPattern.findAllMatchIn(chunk.utf8String)) {
+          val stringUrl = matched.group(1)
+          context.parent ! CrawlerManager.CheckUrl(new URL(stringUrl), depth + 1)
         }
       }
 
