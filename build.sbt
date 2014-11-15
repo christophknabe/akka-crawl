@@ -4,6 +4,8 @@ name := "akka-crawl"
 
 libraryDependencies ++= List(
   Library.akkaHttp,
+  Library.akkaSlf4j,
+  Library.logbackClassic,
   Library.scalaTest % "test"
 )
 

@@ -1,0 +1,99 @@
+/*
+ * Copyright 2014 Heiko Seeberger
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package de.heikoseeberger.akkacrawl
+
+import akka.actor.{ Actor, ActorLogging, Props, Status }
+import akka.http.Http
+import akka.http.model.headers.Host
+import akka.http.model.{ HttpRequest, HttpResponse, StatusCodes }
+import akka.io.IO
+import akka.pattern.{ ask, pipe }
+import akka.stream.FlowMaterializer
+import akka.stream.scaladsl.{ Sink, Source }
+import akka.util.Timeout
+import java.net.URL
+import java.time.LocalDateTime
+import scala.concurrent.Future
+import scala.concurrent.duration.{ Duration, FiniteDuration }
+
+object Crawler {
+
+  def props(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDuration, depth: Int = 0): Props =
+    Props(new Crawler(url, connectTimeout, getTimeout, depth))
+
+  def get(
+    url:       URL,
+    responses: Source[(HttpResponse, Any)],
+    requests:  Sink[(HttpRequest, Any)]
+  )(implicit fm: FlowMaterializer): Future[HttpResponse] = {
+    val request = HttpRequest(uri = url.getPath, headers = List(Host(url.getHost)))
+    Source(List(request))
+      .map(_ -> None)
+      .runWith(requests)
+    responses
+      .map(_._1)
+      .runWith(Sink.head)
+  }
+}
+
+class Crawler(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDuration, depth: Int)
+    extends Actor
+    with ActorLogging {
+
+  import Crawler._
+  import context.dispatcher
+
+  private val startTime = LocalDateTime.now()
+
+  private implicit val flowMaterializer = FlowMaterializer()
+
+  IO(Http)(context.system)
+    .ask(Http.Connect(url.getHost))(connectTimeout)
+    .mapTo[Http.OutgoingConnection]
+    .pipeTo(self)
+
+  log.debug("Crawler for [{}] created", url)
+
+  override def receive: Receive =
+    connecting
+
+  private def connecting: Receive = {
+    case Http.OutgoingConnection(_, _, responses, requests) =>
+      log.debug("Successfully connected to [{}]", url.getHost)
+      get(url, Source(responses), Sink(requests)).pipeTo(self)
+      context.setReceiveTimeout(getTimeout)
+      context.become(getting)
+
+    case Status.Failure(cause) =>
+      log.error(cause, "Couldn't connect to [{}]!", url.getHost)
+      context.stop(self)
+  }
+
+  private def getting: Receive = {
+    case HttpResponse(StatusCodes.OK, _, entity, _) =>
+      log.debug("Successfully got [{}]", url)
+      context.setReceiveTimeout(Duration.Undefined)
+
+    case HttpResponse(other, _, _, _) =>
+      log.error("Server [{}] responded with [{}] to GET [{}]", url.getHost, other, url.getPath)
+      context.stop(self)
+
+    case Timeout =>
+      log.error("Server [{}] didn't respond to GET [{}] within [{}]", url.getHost, url.getPath, connectTimeout)
+      context.stop(self)
+  }
+}
