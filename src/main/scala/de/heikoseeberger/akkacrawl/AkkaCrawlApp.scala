@@ -34,7 +34,7 @@ object AkkaCrawlApp {
 
     crawlerManager ! CrawlerManager.CheckUrl(url, 0)
 
-    while (StdIn.readLine("<Q>ENTER to exit ...") == "") {
+    while (StdIn.readLine("<Q>ENTER to exit ...\n") == "") {
       statsCollector ! CrawlerManager.PrintStatistics
     }
     statsCollector ! CrawlerManager.PrintFinalStatistics
