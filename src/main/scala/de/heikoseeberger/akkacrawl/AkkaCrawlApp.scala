@@ -29,7 +29,8 @@ object AkkaCrawlApp {
 
     val system = ActorSystem("akka-crawl")
     val settings = Settings(system)
-    system.actorOf(Crawler.props(url, settings.connectTimeout, settings.getTimeout))
+    val crawlerManager = system.actorOf(CrawlerManager.props(settings.connectTimeout, settings.getTimeout))
+    crawlerManager ! CrawlerManager.CheckUrl(url, 0)
 
     StdIn.readLine("Hit ENTER to exit ...")
     system.shutdown()
