@@ -13,12 +13,15 @@ class CrawlerTest extends JUnitSuite {
   @Before
   def beforeMethod(): Unit = println("beforeMethod")
 
-  @Test def vergleich {
+  @Test def vergleich(){
     val result = Crawler.linkPattern.findFirstMatchIn("""abc"http://spray.io/documentation/1.2.2/spray-can/"def""")
     result match {
-      case Some(matched) => expect("""http://spray.io/documentation/1.2.2/spray-can/"""){matched.group(1)}
-      //OK
+      case Some(matched) => assertResult("""http://spray.io/documentation/1.2.2/spray-can/"""){matched.group(1)}
     }
+  }
+
+  @Test def  isWorthToFollow(){
+    assertTrue(Crawler.isWorthToFollow("http://spray.io/documentation/1.2.2/spray-can/"))
   }
 
 }// class FacultyTest

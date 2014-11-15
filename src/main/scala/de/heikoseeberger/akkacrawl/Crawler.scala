@@ -51,6 +51,10 @@ object Crawler {
   /**A RegEx pattern for extracting HTTP links from a HTML page.*/
   val linkPattern = """"(http://[^"]+)"""".r
 
+  def isWorthToFollow(url: String): Boolean = {
+    url.substring(url.lastIndexOf('.')) == ".html"
+  }
+
 }
 
 class Crawler(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDuration, depth: Int)
