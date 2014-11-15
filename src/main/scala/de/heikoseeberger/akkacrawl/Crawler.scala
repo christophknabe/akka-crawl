@@ -112,6 +112,7 @@ class Crawler(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDurati
           }
         }
       }
+      context.actorSelection("/user/stats") ! CrawlerManager.Finished(System.currentTimeMillis() - startTime, url, depth)
 
     case HttpResponse(other, _, _, _) =>
       log.error("Server [{}] responded with [{}] to GET [{}]", url.getHost, other, url.getPath)
