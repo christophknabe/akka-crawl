@@ -54,12 +54,12 @@ object Crawler {
 
   def isWorthToFollow(url: URL): Boolean = {
     val path = url.getPath
-    if(path=="" || path=="/") return true
+    if (path == "" || path == "/") return true
     val splittedPath = path.split('/')
-    val lastPathElem = splittedPath.apply(splittedPath.length-1)
-    if(lastPathElem.isEmpty) return true
+    val lastPathElem = splittedPath.apply(splittedPath.length - 1)
+    if (lastPathElem.isEmpty) return true
     val extensionBeginIndex: Int = lastPathElem.lastIndexOf('.')
-    if(extensionBeginIndex < 0) return true
+    if (extensionBeginIndex < 0) return true
     val extension: String = lastPathElem.substring(extensionBeginIndex)
     Set(".html", ".shtml", ".jsp", ".asp") contains extension
   }
@@ -107,7 +107,7 @@ class Crawler(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDurati
         for (matched <- linkPattern.findAllMatchIn(chunk.utf8String)) {
           val stringUrl = matched.group(1)
           val linkUrl: URL = new URL(stringUrl)
-          if(isWorthToFollow(linkUrl)){
+          if (isWorthToFollow(linkUrl)) {
             context.parent ! CrawlerManager.CheckUrl(linkUrl, depth + 1)
           }
         }

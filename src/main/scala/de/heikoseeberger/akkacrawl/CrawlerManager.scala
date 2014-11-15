@@ -15,7 +15,11 @@ object CrawlerManager {
 
   case class CheckUrl(url: URL, depth: Int)
 
-  case class Finished(durationMillis: Long, url: URL, depth: Int)
+  case class Finished(durationMillis: Long, url: URL, depth: Int) {
+    def format: String = {
+      f"${depth}%2d ${durationMillis}%5dms ${url}"
+    }
+  }
 
   case object PrintStatistics
 
@@ -62,7 +66,7 @@ class CrawlerManager(connectTimeout: FiniteDuration, getTimeout: FiniteDuration)
       println(
         s"Summary: Crawled ${archive.length} URIs in ${durationMillis} millis (summedUp: ${summedUpMillis} millis)."
       )
-      println(archive.sortBy(_.depth).map(_.toString).mkString("\n"))
+      println(archive.sortBy(_.depth).map(_.format).mkString("\n"))
       context.system.shutdown()
   }
 }
