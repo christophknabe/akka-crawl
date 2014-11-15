@@ -26,7 +26,6 @@ import akka.stream.FlowMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.util.Timeout
 import java.net.URL
-import java.time.LocalDateTime
 import scala.concurrent.Future
 import scala.concurrent.duration.{ Duration, FiniteDuration }
 
@@ -57,7 +56,7 @@ class Crawler(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDurati
   import Crawler._
   import context.dispatcher
 
-  private val startTime = LocalDateTime.now()
+  private val startTime = System.currentTimeMillis
 
   private implicit val flowMaterializer = FlowMaterializer()
 
