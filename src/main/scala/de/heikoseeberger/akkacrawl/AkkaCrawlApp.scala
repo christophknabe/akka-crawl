@@ -30,10 +30,15 @@ object AkkaCrawlApp {
     val system = ActorSystem("akka-crawl")
     val settings = Settings(system)
     val crawlerManager = system.actorOf(CrawlerManager.props(settings.connectTimeout, settings.getTimeout))
+    val statsCollector = system.actorOf(CrawlerManager.props(settings.connectTimeout, settings.getTimeout), "stats")
+
     crawlerManager ! CrawlerManager.CheckUrl(url, 0)
 
-    StdIn.readLine("Hit ENTER to exit ...")
-    system.shutdown()
+    while (StdIn.readLine("<Q>ENTER to exit ...") == "") {
+      statsCollector ! CrawlerManager.PrintStatistics
+    }
+    statsCollector ! CrawlerManager.PrintFinalStatistics
+    //    system.shutdown()
     system.awaitTermination()
   }
 }
