@@ -47,6 +47,10 @@ object Crawler {
       .map(_._1)
       .runWith(Sink.head)
   }
+
+  /**A RegEx pattern for extracting HTTP links from a HTML page.*/
+  val linkPattern = """"(http://[^"]+)"""".r
+
 }
 
 class Crawler(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDuration, depth: Int)
@@ -86,6 +90,11 @@ class Crawler(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDurati
     case HttpResponse(StatusCodes.OK, _, entity, _) =>
       log.debug("Successfully got [{}]", url)
       context.setReceiveTimeout(Duration.Undefined)
+      for(chunk <- entity.dataBytes){
+        for(matched<-linkPattern.findAllMatchIn(chunk.utf8String)){
+          println("Link: " + matched.group(1))
+        }
+      }
 
     case HttpResponse(other, _, _, _) =>
       log.error("Server [{}] responded with [{}] to GET [{}]", url.getHost, other, url.getPath)
