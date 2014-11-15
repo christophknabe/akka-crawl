@@ -52,8 +52,16 @@ object Crawler {
   /**A RegEx pattern for extracting HTTP links from a HTML page.*/
   val linkPattern = """"(http://[^" ]+)"""".r
 
-  def isWorthToFollow(url: String): Boolean = {
-    url.substring(url.lastIndexOf('.')) == ".html"
+  def isWorthToFollow(url: URL): Boolean = {
+    val path = url.getPath
+    if(path=="" || path=="/") return true
+    val splittedPath = path.split('/')
+    val lastPathElem = splittedPath.apply(splittedPath.length-1)
+    if(lastPathElem.isEmpty) return true
+    val extensionBeginIndex: Int = lastPathElem.lastIndexOf('.')
+    if(extensionBeginIndex < 0) return true
+    val extension: String = lastPathElem.substring(extensionBeginIndex)
+    Set(".html", ".shtml", ".jsp", ".asp") contains extension
   }
 
 }
@@ -98,7 +106,10 @@ class Crawler(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDurati
       for (chunk <- entity.dataBytes) {
         for (matched <- linkPattern.findAllMatchIn(chunk.utf8String)) {
           val stringUrl = matched.group(1)
-          context.parent ! CrawlerManager.CheckUrl(new URL(stringUrl), depth + 1)
+          val linkUrl: URL = new URL(stringUrl)
+          if(isWorthToFollow(linkUrl)){
+            context.parent ! CrawlerManager.CheckUrl(linkUrl, depth + 1)
+          }
         }
       }
 
