@@ -26,6 +26,7 @@ class CrawlerTest extends JUnitSuite {
 
   @Test def  isWorthToFollow(){
     assertResult(true){Crawler.isWorthToFollow(new URL("http://www.kicker.de"))}
+    assertResult(true){Crawler.isWorthToFollow(new URL("http://www.kicker.de/"))}
     assertResult(true){Crawler.isWorthToFollow(new URL("http://spray.io/documentation/1.2.2/spray-can"))}
     assertResult(true){Crawler.isWorthToFollow(new URL("http://spray.io/documentation/1.2.2/spray-can/"))}
     assertResult(false){Crawler.isWorthToFollow(new URL("http://mediadb.kicker.de/special/facebook/images/logo-kicker.png"))}
