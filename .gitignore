@@ -31,3 +31,4 @@ snapshots
 
 # Log files
 *.log
+/bin/
