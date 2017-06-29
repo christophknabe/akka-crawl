@@ -13,15 +13,13 @@ object CrawlerManager {
   def props(connectTimeout: FiniteDuration, getTimeout: FiniteDuration): Props =
     Props(new CrawlerManager(connectTimeout, getTimeout))
 
-  case class CheckUrl(url: URL, depth: Int)
+  case class ScanPage(url: URL, depth: Int)
 
-  case class Finished(durationMillis: Long, url: URL, depth: Int) {
+  case class PageScanned(durationMillis: Long, url: URL, depth: Int) {
     def format: String = {
       f"${depth}%2d ${durationMillis}%5dms ${url}"
     }
   }
-
-  case object PrintStatistics
 
   case object PrintFinalStatistics
 }
@@ -34,39 +32,31 @@ class CrawlerManager(connectTimeout: FiniteDuration, getTimeout: FiniteDuration)
 
   import CrawlerManager._
 
-  private val visited = new scala.collection.mutable.HashMap[URL, Int]()
+  private val triedUrls = new scala.collection.mutable.HashMap[URL, Int]()
 
-  private val archive = new ArrayBuffer[Finished]()
+  private val archive = new ArrayBuffer[PageScanned]()
 
-  log.debug("Crawler Manager created")
+  log.debug(s"Crawler Manager created with connect timeout $connectTimeout and get timeout $getTimeout.")
 
   override def receive: Receive = {
-    case CheckUrl(url: URL, depth: Int) =>
-      log.debug("Crawler Manager queried for [{}], [{}]", url, depth)
-      if (!visited.contains(url)) {
-        visited += (url -> depth)
+    case ScanPage(url: URL, depth: Int) =>
+      log.debug("Crawler Manager queried for {} at depth {}.", url, depth)
+      if (!triedUrls.contains(url)) {
+        triedUrls += (url -> depth)
         context.actorOf(Crawler.props(url, connectTimeout, getTimeout, depth))
       }
-    case f @ Finished(durationMillis: Long, url: URL, _) =>
-      log.debug("Finished [{}] in [{}]", url, durationMillis)
-      archive += f
 
-    case PrintStatistics =>
-      val endMillis = System.currentTimeMillis
-      val durationMillis = endMillis - startMillis
-      val summedUpMillis = archive.map(_.durationMillis).foldLeft(0: Long)((a, b) => a + b)
-      //val messages = sorted.map(_.asMessage).mkString("\n")
-      println(
-        s"Summary: Crawled ${archive.length} URIs in ${durationMillis} millis (summedUp: ${summedUpMillis} millis)."
-      )
+    case f @ PageScanned(durationMillis: Long, url: URL, _) =>
+      log.debug("PageScanned page {} in {} millis.", url, durationMillis)
+      archive += f
+      println(f.format)
+
     case PrintFinalStatistics =>
       val endMillis = System.currentTimeMillis
       val durationMillis = endMillis - startMillis
       val summedUpMillis = archive.map(_.durationMillis).foldLeft(0: Long)((a, b) => a + b)
-      println(
-        s"Summary: Crawled ${archive.length} URIs in ${durationMillis} millis (summedUp: ${summedUpMillis} millis)."
-      )
-      println(archive.sortBy(_.depth).map(_.format).mkString("\n"))
+      println("="*80 + s"\nSummary: Found ${archive.length} pages in ${durationMillis} millis (summedUp: ${summedUpMillis} millis).\n" + "="*80 + "\n")
       context.system.shutdown()
   }
+
 }

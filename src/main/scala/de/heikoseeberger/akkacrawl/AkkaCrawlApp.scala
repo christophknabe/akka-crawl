@@ -21,24 +21,23 @@ import java.net.URL
 import scala.io.StdIn
 import scala.util.Try
 
-object AkkaCrawlApp {
+object AkkaCrawlApp extends App {
 
-  def main(args: Array[String]) {
-    val urlArg = args.headOption.getOrElse(sys.error("Initial URL missing!"))
-    val url = Try(new URL(urlArg)).getOrElse(sys.error(s"Malformed initial URL [$urlArg]"))
+  val urlArg = args.headOption.getOrElse(sys.error("Initial URL missing!"))
+  val url = Try(new URL(urlArg)).getOrElse(sys.error(s"Malformed initial URL [$urlArg]"))
 
-    val system = ActorSystem("akka-crawl")
-    val settings = Settings(system)
-    val crawlerManager = system.actorOf(CrawlerManager.props(settings.connectTimeout, settings.getTimeout))
-    val statsCollector = system.actorOf(CrawlerManager.props(settings.connectTimeout, settings.getTimeout), "stats")
+  val system = ActorSystem("akka-crawl")
+  val settings = Settings(system)
+  val crawlerManager = system.actorOf(CrawlerManager.props(settings.connectTimeout, settings.getTimeout), "manager")
+  val statsCollector = system.actorOf(CrawlerManager.props(settings.connectTimeout, settings.getTimeout), "stats")
+  println(s"Click into this window and press <ENTER> to start crawling from $url")
+  StdIn.readLine()
+  crawlerManager ! CrawlerManager.ScanPage(url, 0)
+  println("Press <ENTER> to stop crawling and print statistics!")
+  StdIn.readLine()
+  statsCollector ! CrawlerManager.PrintFinalStatistics
+  //    system.shutdown()
+  system.awaitTermination()
+  println("ActorSystem terminated. Exiting AkkaCrawlApp.")
 
-    crawlerManager ! CrawlerManager.CheckUrl(url, 0)
-
-    while (StdIn.readLine("<Q>ENTER to exit ...\n") == "") {
-      statsCollector ! CrawlerManager.PrintStatistics
-    }
-    statsCollector ! CrawlerManager.PrintFinalStatistics
-    //    system.shutdown()
-    system.awaitTermination()
-  }
 }

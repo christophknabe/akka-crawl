@@ -66,6 +66,7 @@ object Crawler {
 
 }
 
+/**Gets the page from the URL, which has the given link depth.*/
 class Crawler(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDuration, depth: Int)
     extends Actor
     with ActorLogging {
@@ -82,44 +83,46 @@ class Crawler(url: URL, connectTimeout: FiniteDuration, getTimeout: FiniteDurati
     .mapTo[Http.OutgoingConnection]
     .pipeTo(self)
 
-  log.debug("Crawler for [{}] created", url)
+  log.debug("Crawler for {} created", url)
 
   override def receive: Receive =
     connecting
 
   private def connecting: Receive = {
     case Http.OutgoingConnection(_, _, responses, requests) =>
-      log.debug("Successfully connected to [{}]", url.getHost)
+      log.debug("Connected to host {}", url.getHost)
       get(url, Source(responses), Sink(requests)).pipeTo(self)
       context.setReceiveTimeout(getTimeout)
       context.become(getting)
 
     case Status.Failure(cause) =>
-      log.error(cause, "Couldn't connect to [{}]!", url.getHost)
+      log.error("Couldn't connect to host {} with: {}", url.getHost, cause)
       context.stop(self)
   }
 
   private def getting: Receive = {
     case HttpResponse(StatusCodes.OK, _, entity, _) =>
-      log.debug("Successfully got [{}]", url)
+      log.debug("Getting page {} ...", url)
       context.setReceiveTimeout(Duration.Undefined)
       for (chunk <- entity.dataBytes) {
         for (matched <- linkPattern.findAllMatchIn(chunk.utf8String)) {
           val stringUrl = matched.group(1)
           val linkUrl: URL = new URL(stringUrl)
           if (isWorthToFollow(linkUrl)) {
-            context.parent ! CrawlerManager.CheckUrl(linkUrl, depth + 1)
+            context.parent ! CrawlerManager.ScanPage(linkUrl, depth + 1)
           }
         }
       }
-      context.actorSelection("/user/stats") ! CrawlerManager.Finished(System.currentTimeMillis() - startTime, url, depth)
+      //Source with data bytes read completely.
+      context.actorSelection("/user/stats") ! CrawlerManager.PageScanned(System.currentTimeMillis() - startTime, url, depth)
+    //context.stop(self)
 
-    case HttpResponse(other, _, _, _) =>
-      log.error("Server [{}] responded with [{}] to GET [{}]", url.getHost, other, url.getPath)
+    case HttpResponse(statusCode, _, _, _) =>
+      log.error("GET request {} was answered with error {}", url, statusCode)
       context.stop(self)
 
     case Timeout =>
-      log.error("Server [{}] didn't respond to GET [{}] within [{}]", url.getHost, url.getPath, connectTimeout)
+      log.error("GET request {} was not answered within {} millis.", url.getHost, url.getPath, connectTimeout)
       context.stop(self)
   }
 }
