@@ -2,6 +2,8 @@ lazy val akkaCrawl = project.in(file("."))
 
 name := "akka-crawl"
 
+scalaVersion := Version.scala
+
 libraryDependencies ++= List(
   Library.akkaHttp,
   Library.akkaSlf4j,
