@@ -49,9 +49,7 @@ A Reactive Stream is used when scanning a web page, as the page could be very lo
 ## TODO ##
 
 * Throttle the crawling, when the average scan times get longer and longer (more than 5 seconds)
-* OR BETTER: In order not to need a manager and a statistics actor, we need a priority handling of the `PrintFinalStatistics` message by the manager actor.
-  This can be accomplished by an `UnboundedControlAwareMailbox` for the manager actor. This, in turn needs Scala 2.11.7, and Akka 2.4.19.
-  But better to move on to the current Akka 2.5.3. The packages habe been renamed since before. See the project https://github.com/ChristophKnabe/akka-http-client-try 
-  and the discussion under https://github.com/akka/akka/issues/17279
+* Report how many `ScanPage` commands were in the mailbox of the `CrawlerManager` actor, when it received the `PrintFinalStatistics` command.
+* Use framing according to http://doc.akka.io/docs/akka-http/10.0.9/scala/http/implications-of-streaming-http-entity.html#consuming-the-http-response-entity-client- in order to split the response stream at each `href=`
 
 

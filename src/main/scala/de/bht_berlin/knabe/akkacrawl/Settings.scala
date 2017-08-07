@@ -1,4 +1,4 @@
-package de.heikoseeberger.akkacrawl
+package de.bht_berlin.knabe.akkacrawl
 
 import akka.actor.{ Actor, ExtendedActorSystem, Extension, ExtensionKey }
 import scala.concurrent.duration.{ Duration, FiniteDuration, MILLISECONDS }

@@ -1,4 +1,5 @@
-import de.heikoseeberger.akkacrawl.Crawler
+package de.bht_berlin.knabe.akkacrawl
+
 import org.junit.{BeforeClass, Test, Before}
 import org.scalatest.junit.JUnitSuite
 

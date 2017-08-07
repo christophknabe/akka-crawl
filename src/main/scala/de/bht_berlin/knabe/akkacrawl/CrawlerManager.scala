@@ -1,4 +1,4 @@
-package de.heikoseeberger.akkacrawl
+package de.bht_berlin.knabe.akkacrawl
 
 import akka.http.scaladsl.model.Uri
 import akka.actor.{ Actor, ActorLogging, PoisonPill, Props }

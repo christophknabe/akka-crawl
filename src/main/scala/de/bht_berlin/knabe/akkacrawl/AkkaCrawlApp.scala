@@ -1,4 +1,4 @@
-package de.heikoseeberger.akkacrawl
+package de.bht_berlin.knabe.akkacrawl
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
