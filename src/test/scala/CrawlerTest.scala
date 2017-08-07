@@ -1,9 +1,5 @@
-import java.net.URL
-
 import de.heikoseeberger.akkacrawl.Crawler
 import org.junit.{BeforeClass, Test, Before}
-import org.junit.Assert._
-import org.junit.Test
 import org.scalatest.junit.JUnitSuite
 
 /**
@@ -11,36 +7,60 @@ import org.scalatest.junit.JUnitSuite
  */
 class CrawlerTest extends JUnitSuite {
 
-  /**Deletes test Subscriptions and test Users before each test method.*/
-  @Before
-  def beforeMethod(): Unit = println("beforeMethod")
+  private val hostPath = "://spray.io/documentation/1.2.2/spray-can/"
 
-  @Test def linkPattern(){
-    val url: String = """abc"http://spray.io/documentation/1.2.2/spray-can/"def"""
-    val result = Crawler.linkPattern.findFirstMatchIn(url)
+  @Test def httpLinkPattern(){
+    val text = "abc\"http" + hostPath + "\"def"
+    val result = Crawler.linkPattern.findFirstMatchIn(text)
     result match {
-      case Some(matched) => assertResult("""http://spray.io/documentation/1.2.2/spray-can/"""){matched.group(1)}
-      case None => fail(s"Should find URL match in: $url")
+      case Some(matched) => assertResult("http"+hostPath){matched.group(1)}
+      case None => fail(s"Should find URL match in: $text")
+    }
+  }
+  @Test def httpsLinkPattern(){
+    val text = "abc\"https" + hostPath + "\"def"
+    val result = Crawler.linkPattern.findFirstMatchIn(text)
+    result match {
+      case Some(matched) => assertResult("https"+hostPath){matched.group(1)}
+      case None => fail(s"Should find URL match in: $text")
     }
   }
 
   @Test def  isWorthToFollow(){
-    assertResult(true){Crawler.isWorthToFollow(new URL("http://www.kicker.de"))}
-    assertResult(true){Crawler.isWorthToFollow(new URL("http://www.kicker.de/"))}
-    assertResult(true){Crawler.isWorthToFollow(new URL("http://spray.io/documentation/1.2.2/spray-can"))}
-    assertResult(true){Crawler.isWorthToFollow(new URL("http://spray.io/documentation/1.2.2/spray-can/"))}
-    assertResult(false){Crawler.isWorthToFollow(new URL("http://mediadb.kicker.de/special/facebook/images/logo-kicker.png"))}
-    assertResult(false){Crawler.isWorthToFollow(new URL("http://voting.kicker.de/generic/js/general_7.68.5430.30309.js"))}
-    assertResult(false){Crawler.isWorthToFollow(new URL("http://www.kicker.de/search.xml"))}
+    import akka.http.scaladsl.model.Uri
+    {
+      val uri = Uri("http://www.kicker.de")
+      assertResult(true, uri){Crawler.isWorthToFollow(uri)}
+    }
+    {
+      val uri = Uri("http://www.kicker.de/")
+      assertResult(true, uri){Crawler.isWorthToFollow(uri)}
+    }
+    {
+      val uri = Uri("http://spray.io/documentation/1.2.2/spray-can")
+      assertResult(true, uri){Crawler.isWorthToFollow(uri)}
+    }
+    {
+      val uri = Uri("http://spray.io/documentation/1.2.2/spray-can/")
+      assertResult(true, uri){Crawler.isWorthToFollow(uri)}
+    }
+    {
+      val uri = Uri("http://mediadb.kicker.de/special/facebook/images/logo-kicker.png")
+      assertResult(false, uri){Crawler.isWorthToFollow(uri)}
+    }
+    {
+      val uri = Uri("http://voting.kicker.de/generic/js/general_7.68.5430.30309.js")
+      assertResult(false, uri){
+        Crawler.isWorthToFollow(uri)}
+    }
+    {
+      val uri = Uri("http://www.kicker.de/search.xml")
+      assertResult(false, uri){Crawler.isWorthToFollow(uri)}
+    }
+    {
+      val uri = Uri("https://www.kicker.de")
+      assertResult(true, uri){Crawler.isWorthToFollow(uri)}
+    }
   }
 
-}// class FacultyTest
-
-object CrawlerTest {
-
-  @BeforeClass
-  def beforeClass(): Unit = {
-    println("beforeClass")
-  }
-
-}
+}// class CrawlerTest

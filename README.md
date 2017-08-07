@@ -12,7 +12,7 @@ This code is open source software licensed under the [Apache 2.0 License]("http:
 
 ## Authors ##
 
-* Christoph Knabe for the idea of the public webpage crawler as a demonstration of using Akka for scaling parallel web requests, for the original prototype with Spray and for the statistics part
+* Christoph Knabe for the idea of the public webpage crawler as a demonstration of using Akka for scaling parallel web requests, for the single page access prototype with Spray and for the statistics part
 * Heiko Seeberger for porting the Spray prototype to Akka Streams.
 * blazej0@github for coworking in this solution at the Berlin 2014 Scala hackaton
 
@@ -20,10 +20,10 @@ This code is open source software licensed under the [Apache 2.0 License]("http:
 
 ### Usage ###
 
-`sbt run` _url_
+`sbt run` _uri_
 
-This will configure the given URL as the start point for crawling the web.
-The program issues a prompt on the console. Once you press &lt;ENTER&gt;, it will crawl web pages and log all successfully scanned ones.
+This will configure the given URI as the start point for crawling the web.
+The program issues a prompt on the console. Once you press &lt;ENTER&gt;, it will crawl web pages and print all successfully scanned ones.
 
 When you press &lt;ENTER&gt; again, the program will stop and print a statistics message.
 
@@ -31,20 +31,27 @@ When you press &lt;ENTER&gt; again, the program will stop and print a statistics
 
 If the program does not find any web pages, probably the start page could not be found within the timeout duration. 
 In order to verify this, you can set the configuration parameter `akka.loglevel` in file `application.conf` to `debug`.
-Or you could try with another start URL. There can be also limits for using the internet connection, e.g. if you are in a WiFi network.
+Or you could try with another start URL. 
+Or you could increase the value `akka-crawl.response-timeout` in file `resources/application.conf`!
+There can be also limits for using the internet connection, e.g. if you are in a WiFi network.
 
 ### Collaboration ###
 
-The `AkkaCrawlApp` sets up an `ActorSystem` with a `crawlerManager` and a `statsCollector`.
-Then it starts the `crawlerManager` by sending him a `ScanPage` message for the start URL.
-The `crawlerManager` tries to get each page by an actor per request, scans it for URLs and sends himself further `ScanPage` messages.
-Each successfully scanned page gets registered by the `statsCollector` actor.
-On message `PrintFinalStatistics` it will do so and terminate the actor system.
+The `AkkaCrawlApp` sets up an `ActorSystem` with a `CrawlerManager` actor.
+Then it starts the `CrawlerManager` by sending him a `ScanPage` message for the start URI.
+The `CrawlerManager` tries to get each page by a `Crawler` actor-per-request, lets it scan for URIs and send himself further `ScanPage` messages.
+Each successfully scanned page gets registered by the `CrawlerManager` actor into its `archive`.
+On message `PrintFinalStatistics` it will do so immediately and terminate the actor system. 
+The priority of `PrintFinalStatistics` over other message types is achieved by an `UnboundedControlAwareMailbox` for the manager actor. 
 
-A Reactive Stream is used when scanning a web page, as it could be very long. This occurs in method `Crawler.getting` by `entity.dataBytes`.
+A Reactive Stream is used when scanning a web page, as the page could be very long. This occurs in method `Crawler.receive` in the first `case` branch by `entity.dataBytes`.
 
 ## TODO ##
 
-Split the `CrawlerManager` actor into two actors: one for doing the requests, and another for collecting data for statistics.
+* Throttle the crawling, when the average scan times get longer and longer (more than 5 seconds)
+* OR BETTER: In order not to need a manager and a statistics actor, we need a priority handling of the `PrintFinalStatistics` message by the manager actor.
+  This can be accomplished by an `UnboundedControlAwareMailbox` for the manager actor. This, in turn needs Scala 2.11.7, and Akka 2.4.19.
+  But better to move on to the current Akka 2.5.3. The packages habe been renamed since before. See the project https://github.com/ChristophKnabe/akka-http-client-try 
+  and the discussion under https://github.com/akka/akka/issues/17279
 
 

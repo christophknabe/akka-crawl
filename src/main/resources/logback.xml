@@ -27,6 +27,10 @@
     <logger name="akka.cluster.ClusterHeartbeatSender" level="off" additivity="false">
     </logger>
 
+    <logger name="akka.actor.ActorSystemImpl" level="off" additivity="false">
+        <!-- Deactivated -->
+    </logger>
+
     <root level="warn">
         <appender-ref ref="console"/>
         <appender-ref ref="file"/>
