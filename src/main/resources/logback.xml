@@ -13,7 +13,7 @@
         </encoder>
     </appender>
 
-    <logger name="de.heikoseeberger.akkacrawl" level="debug" additivity="false">
+    <logger name="de.bht_berlin.knabe.akkacrawl" level="warn" additivity="false">
         <appender-ref ref="console"/>
         <appender-ref ref="file"/>
     </logger>

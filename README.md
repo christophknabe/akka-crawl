@@ -31,6 +31,7 @@ When you press &lt;ENTER&gt; again, the program will stop and print a statistics
 
 If the program does not find any web pages, probably the start page could not be found within the timeout duration. 
 In order to verify this, you can set the configuration parameter `akka.loglevel` in file `application.conf` to `debug`.
+Or you could increase to `level="debug"` in the `<logger name="de.bht_berlin.knabe.akkacrawl"` in file `logback.xml`.
 Or you could try with another start URL. 
 Or you could increase the value `akka-crawl.response-timeout` in file `resources/application.conf`!
 There can be also limits for using the internet connection, e.g. if you are in a WiFi network.
@@ -41,8 +42,8 @@ The `AkkaCrawlApp` sets up an `ActorSystem` with a `CrawlerManager` actor.
 Then it starts the `CrawlerManager` by sending him a `ScanPage` message for the start URI.
 The `CrawlerManager` tries to get each page by a `Crawler` actor-per-request, lets it scan for URIs and send himself further `ScanPage` messages.
 Each successfully scanned page gets registered by the `CrawlerManager` actor into its `archive`.
-On message `PrintFinalStatistics` it will do so immediately and terminate the actor system. 
-The priority of `PrintFinalStatistics` over other message types is achieved by an `UnboundedControlAwareMailbox` for the manager actor. 
+On message `PrintFinalStatistics` it will halt to scan pages, print a final statistics, and terminate the actor system. 
+The priority of the `PrintFinalStatistics` message over `ScanPage` message types is achieved by an `UnboundedControlAwareMailbox` for the manager actor. 
 
 A Reactive Stream is used when scanning a web page, as the page could be very long. This occurs in method `Crawler.receive` in the first `case` branch by `entity.dataBytes`.
 
@@ -50,6 +51,5 @@ A Reactive Stream is used when scanning a web page, as the page could be very lo
 
 * Throttle the crawling, when the average scan times get longer and longer (more than 5 seconds)
 * Report how many `ScanPage` commands were in the mailbox of the `CrawlerManager` actor, when it received the `PrintFinalStatistics` command.
-* Use framing according to http://doc.akka.io/docs/akka-http/10.0.9/scala/http/implications-of-streaming-http-entity.html#consuming-the-http-response-entity-client- in order to split the response stream at each `href=`
-
+* Move ahead to Scala version to 2.12.
 
