@@ -9,7 +9,7 @@ import scala.io.StdIn
 
 object AkkaCrawlApp extends App {
 
-  val uriArg = args.headOption.getOrElse(throw new IllegalArgumentException("Initial URI missing!"))
+  val uriArg = args.headOption.getOrElse("http://www.berlin.de/")
   val uri = try { Uri(uriArg) } catch { case ex: Exception => throw new IllegalArgumentException(s"Malformed initial URL [$uriArg]", ex) }
 
   val system = ActorSystem("akka-crawl")

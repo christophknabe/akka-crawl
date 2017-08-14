@@ -67,6 +67,16 @@ class CrawlerTest extends JUnitSuite with Matchers {
       val result = Crawler.worthToFollowUri("https://www.kicker.de", baseUri)
       result shouldBe Some(Uri("https://www.kicker.de"))
     }
+    {
+      //Delete #fragment from URI:
+      val result = Crawler.worthToFollowUri("https://www.berlin.de/kino/_bin/filmdetail.php/244046#tab1_405", baseUri)
+      result shouldBe Some(Uri("https://www.berlin.de/kino/_bin/filmdetail.php/244046"))
+    }
+    {
+      //Delete #query from URI:
+      val result = Crawler.worthToFollowUri("http://www.businesslocationcenter.de/ru?closed=1", baseUri)
+      result shouldBe Some(Uri("http://www.businesslocationcenter.de/ru"))
+    }
   }
 
 }// class CrawlerTest

@@ -25,17 +25,19 @@ object Crawler {
    * Parses the uriString to a Uri.
    *
    * @return The parsed URI, resolved against the given baseUri, if it shows to a web page, which will probably contain more URIs. None otherwise or if an exception occured during parsing.
+    *         Any fragment indications by # and any query parameters intoduced by ? will be stripped off the returned Uri.
    */
   def worthToFollowUri(uriString: String, baseUri: Uri): Option[Uri] = {
-    val uri = try {
+    val completeUri = try {
       Uri.parseAndResolve(uriString, baseUri, UTF8, Uri.ParsingMode.Relaxed)
     } catch {
       case ex: Exception => return None
     }
+    val resultUri = completeUri.copy(fragment = None, rawQueryString = None)
     try {
-      if (!Set("http", "https").contains(uri.scheme)) return None
-      val result = Some(uri)
-      val path = uri.path
+      if (!Set("http", "https").contains(resultUri.scheme)) return None
+      val result = Some(resultUri)
+      val path = resultUri.path
       if (path.isEmpty || path == Path./) {
         return result
       }
@@ -52,10 +54,10 @@ object Crawler {
         return result
       }
       val extension = lastPathElem.substring(extensionBeginIndex)
-      if (Set(".html", ".shtml", ".jsp", ".asp") contains extension) result else None
+      if (Set(".html", ".shtml", ".jsp", ".asp", ".php") contains extension) result else None
     } catch {
       case ex: Exception =>
-        throw new RuntimeException(s"Parsing URI $uri failed.", ex)
+        throw new RuntimeException(s"Parsing URI $completeUri failed.", ex)
     }
   }
 

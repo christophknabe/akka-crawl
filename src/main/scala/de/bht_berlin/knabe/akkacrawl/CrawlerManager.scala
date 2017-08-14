@@ -57,9 +57,9 @@ class CrawlerManager(responseTimeout: FiniteDuration) extends Actor with ActorLo
 
     case PrintFinalStatistics =>
       val endMillis = System.currentTimeMillis
-      val durationMillis = endMillis - startMillis
-      val summedUpMillis = archive.map(_.durationMillis).foldLeft(0: Long)((a, b) => a + b)
-      println("=" * 80 + s"\nSummary: Scanned ${archive.length} pages in ${durationMillis} millis (summedUp: ${summedUpMillis} millis).\n" + "=" * 80 + "\n")
+      val elapsedSeconds = (endMillis - startMillis + 500) / 1000
+      val summedUpSeconds = (archive.map(_.durationMillis).foldLeft(0: Long)((a, b) => a + b) + 500) / 1000
+      println("=" * 80 + s"\nSummary: Scanned ${archive.length} pages in ${elapsedSeconds} seconds (summedUp: ${summedUpSeconds} seconds).\n" + "=" * 80 + "\n")
       _terminate()
   }
 
