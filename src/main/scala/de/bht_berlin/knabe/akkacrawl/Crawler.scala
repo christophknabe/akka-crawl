@@ -2,14 +2,14 @@ package de.bht_berlin.knabe.akkacrawl
 
 import java.nio.charset.Charset
 
-import akka.actor.{Actor, ActorLogging, PoisonPill, Props, ReceiveTimeout}
+import akka.actor.{ Actor, ActorLogging, PoisonPill, Props, ReceiveTimeout }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.model._
-import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
-import akka.stream.scaladsl.{Sink}
+import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
+import akka.stream.scaladsl.{ Sink }
 
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 import scala.concurrent.duration.FiniteDuration
 
 object Crawler {
@@ -19,13 +19,13 @@ object Crawler {
   /** A RegEx pattern for recognizing links in a HTML page. */
   val linkPattern = """href="([^"]*)"""".r
 
-
   val UTF8 = Charset.forName("UTF8")
 
-  /** Parses the uriString to a Uri.
-    *
-    * @return The parsed URI, resolved against the given baseUri, if it shows to a web page, which will probably contain more URIs. None otherwise or if an exception occured during parsing.
-    */
+  /**
+   * Parses the uriString to a Uri.
+   *
+   * @return The parsed URI, resolved against the given baseUri, if it shows to a web page, which will probably contain more URIs. None otherwise or if an exception occured during parsing.
+   */
   def worthToFollowUri(uriString: String, baseUri: Uri): Option[Uri] = {
     val uri = try {
       Uri.parseAndResolve(uriString, baseUri, UTF8, Uri.ParsingMode.Relaxed)
@@ -36,19 +36,19 @@ object Crawler {
       if (!Set("http", "https").contains(uri.scheme)) return None
       val result = Some(uri)
       val path = uri.path
-      if (path.isEmpty || path == Path./){
+      if (path.isEmpty || path == Path./) {
         return result
       }
       val splittedPath = path.toString.split('/')
-      if(splittedPath.length < 1){
+      if (splittedPath.length < 1) {
         return result
       }
       val lastPathElem = splittedPath.apply(splittedPath.length - 1)
-      if (lastPathElem.isEmpty){
+      if (lastPathElem.isEmpty) {
         return result
       }
       val extensionBeginIndex: Int = lastPathElem.lastIndexOf('.')
-      if (extensionBeginIndex < 0){
+      if (extensionBeginIndex < 0) {
         return result
       }
       val extension = lastPathElem.substring(extensionBeginIndex)
@@ -61,11 +61,13 @@ object Crawler {
 
 }
 
-/** Scans the page from the URI, which has the given link depth. If in the page it encounters href-s to URIs, they will be sent to the CrawlerManager in order to scan them, too.
-  *
-  * @param responseTimeout duration to wait before the page at the URI is considered as not retrievable. */
+/**
+ * Scans the page from the URI, which has the given link depth. If in the page it encounters href-s to URIs, they will be sent to the CrawlerManager in order to scan them, too.
+ *
+ * @param responseTimeout duration to wait before the page at the URI is considered as not retrievable.
+ */
 class Crawler(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
-  extends Actor
+    extends Actor
     with ActorLogging {
 
   import Crawler._

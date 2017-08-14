@@ -11,9 +11,9 @@ object CrawlerManager {
   def props(responseTimeout: FiniteDuration): Props = Props(new CrawlerManager(responseTimeout))
 
   /**
-    * A command to scan the page with the given URI. The depth is the link distance from the start URI of the main App.
-    * This command has a lower priority than the others, as it creates new work, whereas the others register and print work already done.
-    */
+   * A command to scan the page with the given URI. The depth is the link distance from the start URI of the main App.
+   * This command has a lower priority than the others, as it creates new work, whereas the others register and print work already done.
+   */
   case class ScanPage(uri: Uri, depth: Int)
 
   /**A command to archive, that the web page at the given URI and link depth was successfully scanned.*/

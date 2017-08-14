@@ -12,6 +12,3 @@ libraryDependencies ++= List(
   "junit" % "junit" % "4.11" % "test"
 )
 
-EclipseKeys.withSource := true
-
-initialCommands := """|import de.heikoseeberger.akkacrawl._""".stripMargin

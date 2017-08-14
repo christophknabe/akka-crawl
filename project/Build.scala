@@ -12,10 +12,10 @@ object Build extends AutoPlugin {
     allRequirements
 
   override def projectSettings =
-    scalariformSettings ++
+    autoImport.scalariformSettings(autoformat = true) ++
     List(
       // Core settings
-      organization := "de.heikoseeberger",
+      organization := "de.bht_berlin",
       version := "0.1.0-SNAPSHOT",
       scalaVersion := Version.scala,
       crossScalaVersions := List(scalaVersion.value),
@@ -23,7 +23,7 @@ object Build extends AutoPlugin {
         "-unchecked",
         "-deprecation",
         "-language:_",
-        "-target:jvm-1.7",
+        "-target:jvm-1.8",
         "-encoding", "UTF-8"
       ),
       unmanagedSourceDirectories in Compile := List((scalaSource in Compile).value),
@@ -34,6 +34,5 @@ object Build extends AutoPlugin {
         .setPreference(AlignParameters, true)
         .setPreference(AlignSingleLineCaseStatements, true)
         .setPreference(AlignSingleLineCaseStatements.MaxArrowIndent, 100)
-        .setPreference(DoubleIndentClassDeclaration, true)
     )
 }
