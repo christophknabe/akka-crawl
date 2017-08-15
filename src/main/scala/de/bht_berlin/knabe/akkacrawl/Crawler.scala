@@ -25,7 +25,7 @@ object Crawler {
    * Parses the uriString to a Uri.
    *
    * @return The parsed URI, resolved against the given baseUri, if it shows to a web page, which will probably contain more URIs. None otherwise or if an exception occured during parsing.
-    *         Any fragment indications by # and any query parameters intoduced by ? will be stripped off the returned Uri.
+    *         Any fragment indications by # and any query parameters introduced by ? will be stripped off the returned Uri.
    */
   def worthToFollowUri(uriString: String, baseUri: Uri): Option[Uri] = {
     val completeUri = try {
