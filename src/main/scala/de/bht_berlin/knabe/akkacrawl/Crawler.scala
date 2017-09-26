@@ -25,7 +25,7 @@ object Crawler {
    * Parses the uriString to a Uri.
    *
    * @return The parsed URI, resolved against the given baseUri, if it shows to a web page, which will probably contain more URIs. None otherwise or if an exception occured during parsing.
-    *         Any fragment indications by # and any query parameters introduced by ? will be stripped off the returned Uri.
+   *         Any fragment indications by # and any query parameters introduced by ? will be stripped off the returned Uri.
    */
   def worthToFollowUri(uriString: String, baseUri: Uri): Option[Uri] = {
     val completeUri = try {
@@ -33,7 +33,7 @@ object Crawler {
     } catch {
       case ex: Exception => return None
     }
-    val resultUri = completeUri.copy(fragment = None, rawQueryString = None)
+    val resultUri = completeUri.copy(fragment       = None, rawQueryString = None)
     try {
       if (!Set("http", "https").contains(resultUri.scheme)) return None
       val result = Some(resultUri)
@@ -69,8 +69,8 @@ object Crawler {
  * @param responseTimeout duration to wait before the page at the URI is considered as not retrievable.
  */
 class Crawler(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
-    extends Actor
-    with ActorLogging {
+  extends Actor
+  with ActorLogging {
 
   import Crawler._
   import akka.pattern.pipe

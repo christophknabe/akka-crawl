@@ -1,7 +1,7 @@
 package de.bht_berlin.knabe.akkacrawl
 
 import akka.http.scaladsl.model.Uri
-import org.junit.{Test}
+import org.junit.{ Test }
 import org.scalatest.Matchers
 import org.scalatest.junit.JUnitSuite
 
@@ -13,24 +13,24 @@ class CrawlerTest extends JUnitSuite with Matchers {
   private val hostPath = "://spray.io/documentation/1.2.2/spray-can/"
   private val baseUri = Uri("http://www.berlin.de/");
 
-  @Test def hrefHttpPattern(){
+  @Test def hrefHttpPattern() {
     val text = "<a href=\"http" + hostPath + "\">"
     val result = Crawler.linkPattern.findFirstMatchIn(text)
     result match {
-      case Some(matched) => assertResult("http"+hostPath){matched.group(1)}
-      case None => fail(s"Should find URL match in: $text")
+      case Some(matched) => assertResult("http" + hostPath) { matched.group(1) }
+      case None          => fail(s"Should find URL match in: $text")
     }
   }
-  @Test def hrefHttpsPattern(){
+  @Test def hrefHttpsPattern() {
     val text = "<a href=\"https" + hostPath + "\"def"
     val result = Crawler.linkPattern.findFirstMatchIn(text)
     result match {
-      case Some(matched) => assertResult("https"+hostPath){matched.group(1)}
-      case None => fail(s"Should find URL match in: $text")
+      case Some(matched) => assertResult("https" + hostPath) { matched.group(1) }
+      case None          => fail(s"Should find URL match in: $text")
     }
   }
 
-  @Test def worthToFollowUri(){
+  @Test def worthToFollowUri() {
     {
       val result = Crawler.worthToFollowUri("https://datenschutz-berlin.de//", baseUri)
       result shouldBe Some(Uri("https://datenschutz-berlin.de//"))
@@ -79,4 +79,4 @@ class CrawlerTest extends JUnitSuite with Matchers {
     }
   }
 
-}// class CrawlerTest
+} // class CrawlerTest
