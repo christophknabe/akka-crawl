@@ -12,7 +12,7 @@ This code is open source software licensed under the [Apache 2.0 License]("http:
 
 ## Authors ##
 
-* Christoph Knabe for the idea of the public webpage crawler as a demonstration of using Akka for scaling parallel web requests, for the single page access prototype with Spray and for the statistics part
+* Christoph Knabe for the idea of the public webpage crawler as a demonstration of using Akka for scaling parallel web requests, for the single page access prototype with Spray and for the summary part. Also later for making it more robust.
 * Heiko Seeberger for porting the Spray prototype to Akka Streams.
 * blazej0@github for coworking in this solution at the Berlin 2014 Scala hackaton
 
@@ -51,7 +51,7 @@ Then it will terminate the actor system.
 
 `Crawler`uses a Reactive Stream when scanning a web page, as the page could be very long. This occurs in method `Crawler.receive` in the first `case` branch by `entity.dataBytes`.
 
-### Crawl Results ###
+### Example Crawl Results ###
 
 | Environment          | Results                      |
 | -------------------- | ---------------------------- |
@@ -64,6 +64,6 @@ Then it will terminate the actor system.
 ## TODO ##
 
 * Throttle the crawling, when the average scan times get longer and longer (more than 5 seconds)
-* Report how many `ScanPage` commands were in the mailbox of the `CrawlerManager` actor, when it received the `PrintScanSummary` command.
+* Find out why scanning an individual page lasts longer and longer after about a minute of crawling. For example the first 10 pages need about 1 to 2 seconds each, whereas pages 350 to 359 need about 23 to 50 seconds each.
 
 
