@@ -14,9 +14,9 @@ object AkkaCrawlApp extends App {
 
   val system = ActorSystem("akka-crawl")
   val settings = Settings(system)
-  val crawlerManager = system.actorOf(CrawlerManager.props(settings.responseTimeout).withMailbox("stoppable-mailbox"), "manager")
   println(s"Click into this window and press <ENTER> to start crawling from $uri")
   StdIn.readLine()
+  val crawlerManager = system.actorOf(CrawlerManager.props(settings.responseTimeout).withMailbox("stoppable-mailbox"), name="manager")
   crawlerManager ! CrawlerManager.ScanPage(uri, 0)
   println("Press <ENTER> to stop crawling and print statistics!")
   StdIn.readLine()
