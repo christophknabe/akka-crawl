@@ -47,9 +47,19 @@ The priority of the `PrintFinalStatistics` message over `ScanPage` message types
 
 A Reactive Stream is used when scanning a web page, as the page could be very long. This occurs in method `Crawler.receive` in the first `case` branch by `entity.dataBytes`.
 
+### Crawl Results ###
+
+| Environment          | Results                      |
+| -------------------- | ---------------------------- |
+| At home (DSL)        | Scanned 373 pages / minute   |
+| In university WLAN   | Scanned 2.917 pages / minute |
+| On university server | Scanned 6.480 pages / minute |
+
+
+
 ## TODO ##
 
 * Throttle the crawling, when the average scan times get longer and longer (more than 5 seconds)
 * Report how many `ScanPage` commands were in the mailbox of the `CrawlerManager` actor, when it received the `PrintFinalStatistics` command.
-* Move ahead to Scala version to 2.12.
+
 
