@@ -42,10 +42,14 @@ The `AkkaCrawlApp` sets up an `ActorSystem` with a `CrawlerManager` actor.
 Then it starts the `CrawlerManager` by sending him a `ScanPage` message for the start URI.
 The `CrawlerManager` tries to get each page by a `Crawler` actor-per-request, lets it scan for URIs and send himself further `ScanPage` messages.
 Each successfully scanned page gets registered by the `CrawlerManager` actor into its `archive`.
-On message `PrintFinalStatistics` it will halt to scan pages, print a final statistics, and terminate the actor system. 
-The priority of the `PrintFinalStatistics` message over `ScanPage` message types is achieved by an `UnboundedControlAwareMailbox` for the manager actor. 
+On message `PrintScanSummary` it will halt to scan pages, print a summary of successful page scans, and change to `finish` behavior.
 
-A Reactive Stream is used when scanning a web page, as the page could be very long. This occurs in method `Crawler.receive` in the first `case` branch by `entity.dataBytes`.
+The priority of the `PrintScanSummary` message over `ScanPage` message types is achieved by an `UnboundedControlAwareMailbox` for the manager actor. 
+
+In the `finish` behavior the `CrawlerManager` actor will print all unprocessed commands, as well as all tried, but not successfully scanned pages. 
+Then it will terminate the actor system.  
+
+`Crawler`uses a Reactive Stream when scanning a web page, as the page could be very long. This occurs in method `Crawler.receive` in the first `case` branch by `entity.dataBytes`.
 
 ### Crawl Results ###
 
@@ -60,6 +64,6 @@ A Reactive Stream is used when scanning a web page, as the page could be very lo
 ## TODO ##
 
 * Throttle the crawling, when the average scan times get longer and longer (more than 5 seconds)
-* Report how many `ScanPage` commands were in the mailbox of the `CrawlerManager` actor, when it received the `PrintFinalStatistics` command.
+* Report how many `ScanPage` commands were in the mailbox of the `CrawlerManager` actor, when it received the `PrintScanSummary` command.
 
 
