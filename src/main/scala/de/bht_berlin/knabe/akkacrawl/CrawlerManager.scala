@@ -23,15 +23,18 @@ object CrawlerManager {
     }
   }
 
-  /**A command to print a final statistics and to terminate the main app.*/
-  case object PrintFinalStatistics extends akka.dispatch.ControlMessage
+  /**A command to print a final summary of scanned pages and to proceed in the finishing mode.*/
+  case object PrintScanSummary extends akka.dispatch.ControlMessage
+
+  /**A command to print all unprocessed ScanPage commands from the Inbox,and a summary about them, and to terminate the main app.*/
+  case object PrintUnprocessedSummary
 
 }
 
 /**An actor, which manages many actors-per-request to crawl the whole web.*/
 class CrawlerManager(responseTimeout: FiniteDuration) extends Actor with ActorLogging {
 
-  private val startMillis: Long = System.currentTimeMillis
+  val line = "=" * 80
 
   import CrawlerManager._
 
@@ -39,9 +42,12 @@ class CrawlerManager(responseTimeout: FiniteDuration) extends Actor with ActorLo
   private val triedUris = new scala.collection.mutable.HashSet[Uri]()
 
   /**A memory about all web pages, which have been found and successfully scanned for further URIs.*/
-  private val archive = new ArrayBuffer[PageScanned]()
+  private val scannedPages = new ArrayBuffer[PageScanned]()
 
   log.debug(s"Crawler Manager created with responseTimeout $responseTimeout.")
+  println("Successfully Scanned Pages:\n==========================\n\nLvl Duratn URI\n=== ====== ===")
+
+  private val startMillis: Long = System.currentTimeMillis
 
   override def receive: Receive = {
     case ScanPage(uri: Uri, depth: Int) =>
@@ -52,17 +58,34 @@ class CrawlerManager(responseTimeout: FiniteDuration) extends Actor with ActorLo
       }
 
     case f: PageScanned =>
-      archive += f
+      scannedPages += f
       println(f.format)
 
-    case PrintFinalStatistics =>
+    case PrintScanSummary =>
       val endMillis = System.currentTimeMillis
-      val elapsedSeconds = (endMillis - startMillis + 500) / 1000
-      val summedUpSeconds = (archive.map(_.durationMillis).foldLeft(0: Long)((a, b) => a + b) + 500) / 1000
-      val line = "=" * 80
-      println(s"$line\nSummary: Scanned ${archive.length} pages in $elapsedSeconds seconds (summedUp: $summedUpSeconds seconds).\n$line\n")
-      _terminate()
+      val elapsedSeconds = roundToSeconds(endMillis - startMillis)
+      val summedUpSeconds = roundToSeconds(scannedPages.map(_.durationMillis).sum)
+      println(s"$line\nSummary: Scanned ${scannedPages.length} pages in $elapsedSeconds seconds (summedUp: $summedUpSeconds seconds).\n$line\n")
+      println("=======================Unprocessed Inbox commands:====================")
+      self ! PrintUnprocessedSummary
+      context become finishing
   }
+
+  def finishing: Receive = {
+    case PrintUnprocessedSummary =>
+      println(line)
+      println("All unprocessed inbox commands listed above.")
+      val unscannedPages = triedUris.toSet - (scannedPages.map(_.uri).toSet)
+      println(line)
+      println(s"Unscanned (not found | not completed) pages:")
+      println(line)
+      _terminate()
+    case x =>
+      println(s"Unprocessed inbox message: $x")
+  }
+
+  /**Rounds a millisecond value to the nearest second value.*/
+  private def roundToSeconds(millis: Long): Long = (millis + 500) / 1000
 
   private def _terminate(): Unit = {
     import scala.concurrent.duration._

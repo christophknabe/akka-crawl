@@ -12,7 +12,7 @@ This code is open source software licensed under the [Apache 2.0 License]("http:
 
 ## Authors ##
 
-* Christoph Knabe for the idea of the public webpage crawler as a demonstration of using Akka for scaling parallel web requests, for the single page access prototype with Spray and for the statistics part
+* Christoph Knabe for the idea of the public webpage crawler as a demonstration of using Akka for scaling parallel web requests, for the single page access prototype with Spray and for the summary part. Also later for making it more robust.
 * Heiko Seeberger for porting the Spray prototype to Akka Streams.
 * blazej0@github for coworking in this solution at the Berlin 2014 Scala hackaton
 
@@ -42,14 +42,28 @@ The `AkkaCrawlApp` sets up an `ActorSystem` with a `CrawlerManager` actor.
 Then it starts the `CrawlerManager` by sending him a `ScanPage` message for the start URI.
 The `CrawlerManager` tries to get each page by a `Crawler` actor-per-request, lets it scan for URIs and send himself further `ScanPage` messages.
 Each successfully scanned page gets registered by the `CrawlerManager` actor into its `archive`.
-On message `PrintFinalStatistics` it will halt to scan pages, print a final statistics, and terminate the actor system. 
-The priority of the `PrintFinalStatistics` message over `ScanPage` message types is achieved by an `UnboundedControlAwareMailbox` for the manager actor. 
+On message `PrintScanSummary` it will halt to scan pages, print a summary of successful page scans, and change to `finish` behavior.
 
-A Reactive Stream is used when scanning a web page, as the page could be very long. This occurs in method `Crawler.receive` in the first `case` branch by `entity.dataBytes`.
+The priority of the `PrintScanSummary` message over `ScanPage` message types is achieved by an `UnboundedControlAwareMailbox` for the manager actor. 
+
+In the `finish` behavior the `CrawlerManager` actor will print all unprocessed commands, as well as all tried, but not successfully scanned pages. 
+Then it will terminate the actor system.  
+
+`Crawler`uses a Reactive Stream when scanning a web page, as the page could be very long. This occurs in method `Crawler.receive` in the first `case` branch by `entity.dataBytes`.
+
+### Example Crawl Results ###
+
+| Environment          | Results                      |
+| -------------------- | ---------------------------- |
+| At home (DSL)        | Scanned 373 pages / minute   |
+| In university WLAN   | Scanned 2.917 pages / minute |
+| On university server | Scanned 6.480 pages / minute |
+
+
 
 ## TODO ##
 
 * Throttle the crawling, when the average scan times get longer and longer (more than 5 seconds)
-* Report how many `ScanPage` commands were in the mailbox of the `CrawlerManager` actor, when it received the `PrintFinalStatistics` command.
-* Move ahead to Scala version to 2.12.
+* Find out why scanning an individual page lasts longer and longer after about a minute of crawling. For example the first 10 pages need about 1 to 2 seconds each, whereas pages 350 to 359 need about 23 to 50 seconds each.
+
 
