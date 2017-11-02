@@ -17,7 +17,8 @@ object Crawler {
   def props(url: Uri, responseTimeout: FiniteDuration, depth: Int = 0) = Props(new Crawler(url, responseTimeout, depth))
 
   /** A RegEx pattern for recognizing links in a HTML page. */
-  val linkPattern = """href="([^"]*)"""".r
+  val linkPattern =
+    """href="([^"]*)"""".r
 
   val UTF8 = Charset.forName("UTF8")
 
@@ -64,9 +65,13 @@ object Crawler {
 }
 
 /**
- * Scans the page from the URI, which has the given link depth. If in the page it encounters href-s to URIs, they will be sent to the CrawlerManager in order to scan them, too.
+ * Scans the page at the URI, which has the given link depth.
+ * If the page is successfully scanned, a PageScanned command is sent to the CrawlerManager actor.
+ * If in the page it encounters href-s to URIs, corresponding ScanPage commands will be sent to the CrawlerManager in order to scan them, too.
  *
+ * @param uri address of the page to be scanned.
  * @param responseTimeout duration to wait before the page at the URI is considered as not retrievable.
+ * @param depth the link depth counted from the start URI.
  */
 class Crawler(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
   extends Actor
@@ -107,8 +112,7 @@ class Crawler(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
       }.onComplete {
         case Success(done) =>
           //Source with data bytes read completely.
-          context.parent !
-            CrawlerManager.PageScanned(elapsedMillis, uri, depth)
+          context.parent ! CrawlerManager.PageScanned(elapsedMillis, uri, depth)
           self ! PoisonPill
         case Failure(t) =>
           log.error(t, "GET request {} dataBytes read completed with Failure", uri)

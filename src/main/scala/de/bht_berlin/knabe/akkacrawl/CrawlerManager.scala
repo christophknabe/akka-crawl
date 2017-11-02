@@ -11,7 +11,7 @@ object CrawlerManager {
   def props(responseTimeout: FiniteDuration): Props = Props(new CrawlerManager(responseTimeout))
 
   /**
-   * A command to scan the page with the given URI. The depth is the link distance from the start URI of the main App.
+   * A command to scan the page at the given URI. The depth is the link distance from the start URI of the main App.
    * This command has a lower priority than the others, as it creates new work, whereas the others register and print work already done.
    */
   case class ScanPage(uri: Uri, depth: Int)
@@ -26,7 +26,7 @@ object CrawlerManager {
   /**A command to print a final summary of scanned pages and to proceed in the finishing mode.*/
   case object PrintScanSummary extends akka.dispatch.ControlMessage
 
-  /**A command to print all unprocessed ScanPage commands from the Inbox,and a summary about them, and to terminate the main app.*/
+  /**A command to print all unprocessed ScanPage commands from the Inbox, and a summary about them, and to terminate the main App.*/
   case object PrintUnprocessedSummary
 
 }
@@ -71,6 +71,9 @@ class CrawlerManager(responseTimeout: FiniteDuration) extends Actor with ActorLo
       context become finishing
   }
 
+  /**Number of unprocessed messages encountered in the Inbox during the finishing phase.*/
+  private var unprocessedCount: Int = 0
+
   def finishing: Receive = {
     case PrintUnprocessedSummary =>
       println(line)
@@ -80,8 +83,9 @@ class CrawlerManager(responseTimeout: FiniteDuration) extends Actor with ActorLo
       println(s"Unscanned (not found | not completed) pages:")
       println(line)
       _terminate()
-    case x =>
-      println(s"Unprocessed inbox message: $x")
+    case x @ (_: ScanPage | _: PageScanned) =>
+      unprocessedCount += 1
+      println(s"$unprocessedCount. unprocessed: $x")
   }
 
   /**Rounds a millisecond value to the nearest second value.*/
