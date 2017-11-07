@@ -38,26 +38,28 @@ There can be also limits for using the internet connection, e.g. if you are in a
 
 ### Collaboration ###
 
-The `AkkaCrawlApp` sets up an `ActorSystem` with a `CrawlerManager` actor.
-Then it starts the `CrawlerManager` by sending him a `ScanPage` message for the start URI.
-The `CrawlerManager` tries to get each page by a `Crawler` actor-per-request, lets it scan for URIs and send himself further `ScanPage` messages.
-Each successfully scanned page gets registered by the `CrawlerManager` actor into its `archive`.
+The `AkkaCrawlApp` sets up an `ActorSystem` with one `Crawler` actor.
+Then it starts the `Crawler` by sending him a `ScanPage` message for the start URI.
+The `Crawler` tries to get each page by a `Scanner` actor-per-request, lets it scan for URIs and send himself further `ScanPage` messages.
+Each successfully scanned page gets registered by the `Crawler` actor into its `archive`.
 On message `PrintScanSummary` it will halt to scan pages, print a summary of successful page scans, and change to `finish` behavior.
 
 The priority of the `PrintScanSummary` message over `ScanPage` message types is achieved by an `UnboundedControlAwareMailbox` for the manager actor. 
 
-In the `finish` behavior the `CrawlerManager` actor will print all unprocessed commands, as well as all tried, but not successfully scanned pages. 
+In the `finish` behavior the `Crawler` actor will print all unprocessed commands, as well as all tried, but not successfully scanned pages. 
 Then it will terminate the actor system.  
 
-`Crawler`uses a Reactive Stream when scanning a web page, as the page could be very long. This occurs in method `Crawler.receive` in the first `case` branch by `entity.dataBytes`.
+`Crawler` uses a Reactive Stream when scanning a web page, as the page could be very long. This occurs in method `Crawler.receive` in the first `case` branch by `entity.dataBytes`.
+
+See more explanations in the [Presentation Slides](src/doc/discussion.pdf).
 
 ### Example Crawl Results ###
 
-| Environment          | Results                      |
-| -------------------- | ---------------------------- |
-| At home (DSL)        | Scanned 373 pages / minute   |
-| In university WLAN   | Scanned 2.917 pages / minute |
-| On university server | Scanned 6.480 pages / minute |
+| Environment          | Scanned in 1 minute           | Unprocessed commands |
+| -------------------- | ---------------------------- | --------------------- |
+| At home (DSL)        | 318 pages                    | 11                    |
+| In university WLAN   | 2,747 pages                  | 387                   |
+| On university server | 7,779 pages                  | 797,368               |
 
 
 
@@ -65,5 +67,7 @@ Then it will terminate the actor system.
 
 * Throttle the crawling, when the average scan times get longer and longer (more than 5 seconds)
 * Find out why scanning an individual page lasts longer and longer after about a minute of crawling. For example the first 10 pages need about 1 to 2 seconds each, whereas pages 350 to 359 need about 23 to 50 seconds each.
+* Find out how to find the limiting factor (CPU, network, open ports, JVM-RAM, ...)
+* Find out how to use a purely streamed solution with backpressure.
 
 

@@ -1,146 +1,109 @@
 package de.bht_berlin.knabe.akkacrawl
 
-import java.nio.charset.Charset
+import akka.http.scaladsl.model.Uri
+import akka.actor.{ Actor, ActorLogging, PoisonPill, Props }
 
-import akka.actor.{ Actor, ActorLogging, PoisonPill, Props, ReceiveTimeout }
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.model._
-import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
-import akka.stream.scaladsl.{ Sink }
-
-import scala.util.{ Failure, Success }
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.FiniteDuration
 
 object Crawler {
 
-  def props(url: Uri, responseTimeout: FiniteDuration, depth: Int = 0) = Props(new Crawler(url, responseTimeout, depth))
-
-  /** A RegEx pattern for recognizing links in a HTML page. */
-  val linkPattern =
-    """href="([^"]*)"""".r
-
-  val UTF8 = Charset.forName("UTF8")
+  def props(responseTimeout: FiniteDuration): Props = Props(new Crawler(responseTimeout))
 
   /**
-   * Parses the uriString to a Uri.
-   *
-   * @return The parsed URI, resolved against the given baseUri, if it shows to a web page, which will probably contain more URIs. None otherwise or if an exception occured during parsing.
-   *         Any fragment indications by # and any query parameters introduced by ? will be stripped off the returned Uri.
+   * A command to scan the page at the given URI. The depth is the link distance from the start URI of the main App.
+   * This command has a lower priority than the others, as it creates new work, whereas the others register and print work already done.
    */
-  def worthToFollowUri(uriString: String, baseUri: Uri): Option[Uri] = {
-    val completeUri = try {
-      Uri.parseAndResolve(uriString, baseUri, UTF8, Uri.ParsingMode.Relaxed)
-    } catch {
-      case ex: Exception => return None
-    }
-    val resultUri = completeUri.copy(fragment       = None, rawQueryString = None)
-    try {
-      if (!Set("http", "https").contains(resultUri.scheme)) return None
-      val result = Some(resultUri)
-      val path = resultUri.path
-      if (path.isEmpty || path == Path./) {
-        return result
-      }
-      val splittedPath = path.toString.split('/')
-      if (splittedPath.length < 1) {
-        return result
-      }
-      val lastPathElem = splittedPath.apply(splittedPath.length - 1)
-      if (lastPathElem.isEmpty) {
-        return result
-      }
-      val extensionBeginIndex: Int = lastPathElem.lastIndexOf('.')
-      if (extensionBeginIndex < 0) {
-        return result
-      }
-      val extension = lastPathElem.substring(extensionBeginIndex)
-      if (Set(".html", ".shtml", ".jsp", ".asp", ".php") contains extension) result else None
-    } catch {
-      case ex: Exception =>
-        throw new RuntimeException(s"Parsing URI $completeUri failed.", ex)
+  case class ScanPage(uri: Uri, depth: Int)
+
+  /**A command to archive, that the web page at the given URI and link depth was successfully scanned.*/
+  case class PageScanned(durationMillis: Long, uri: Uri, depth: Int) extends akka.dispatch.ControlMessage {
+    def format: String = {
+      f"${depth}%2d ${durationMillis}%5dms ${uri}"
     }
   }
+
+  /**A command to print a final summary of scanned pages and to proceed in the finishing mode.*/
+  case object PrintScanSummary extends akka.dispatch.ControlMessage
+
+  /**A command to print all unprocessed ScanPage commands from the Inbox, and a summary about them, and to terminate the main App.*/
+  case object PrintUnprocessedSummary
 
 }
 
-/**
- * Scans the page at the URI, which has the given link depth.
- * If the page is successfully scanned, a PageScanned command is sent to the CrawlerManager actor.
- * If in the page it encounters href-s to URIs, corresponding ScanPage commands will be sent to the CrawlerManager in order to scan them, too.
- *
- * @param uri address of the page to be scanned.
- * @param responseTimeout duration to wait before the page at the URI is considered as not retrievable.
- * @param depth the link depth counted from the start URI.
- */
-class Crawler(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
-  extends Actor
-  with ActorLogging {
+/**An actor, which manages many actors-per-request to crawl the whole web.*/
+class Crawler(responseTimeout: FiniteDuration) extends Actor with ActorLogging {
+
+  val line = "=" * 80
 
   import Crawler._
-  import akka.pattern.pipe
-  import context.dispatcher
-  import scala.concurrent.duration._
 
-  private final implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(context.system))
+  /**A memory with all tried URIs in order to avoid link recursion.*/
+  private val triedUris = new scala.collection.mutable.HashSet[Uri]()
 
-  private val http = Http(context.system)
-  log.debug("Crawler for {} created", uri)
+  /**A memory about all web pages, which have been found and successfully scanned for further URIs.*/
+  private val scannedPages = new ArrayBuffer[PageScanned]()
 
-  private val startTime = System.currentTimeMillis
+  log.debug(s"Crawler Manager created with responseTimeout $responseTimeout.")
+  println("Successfully Scanned Pages:\n==========================\n\nLvl Duratn URI\n=== ====== ===")
 
-  override def preStart() = {
-    http.singleRequest(HttpRequest(uri = uri)).pipeTo(self)
-    context.setReceiveTimeout(responseTimeout)
-  }
+  private val startMillis: Long = System.currentTimeMillis
 
   override def receive: Receive = {
-    case HttpResponse(StatusCodes.OK, _, entity, _) =>
-      log.debug("Getting page {} ...", uri)
-      context.setReceiveTimeout(Duration.Undefined)
-      entity.dataBytes.runForeach {
-        chunk =>
-          for (matched <- linkPattern.findAllMatchIn(chunk.utf8String)) {
-            val linkString = matched.group(1)
-            val linkUriOption = worthToFollowUri(linkString, uri)
-            linkUriOption match {
-              case Some(linkUri) =>
-                context.parent ! CrawlerManager.ScanPage(linkUri, depth + 1)
-              case None => //Do not follow the link.
-            }
-          }
-      }.onComplete {
-        case Success(done) =>
-          //Source with data bytes read completely.
-          context.parent ! CrawlerManager.PageScanned(elapsedMillis, uri, depth)
-          self ! PoisonPill
-        case Failure(t) =>
-          log.error(t, "GET request {} dataBytes read completed with Failure", uri)
-          self ! PoisonPill
+    case ScanPage(uri: Uri, depth: Int) =>
+      log.debug("Crawler Manager queried for {} at depth {}.", uri, depth)
+      if (!triedUris.contains(uri)) {
+        triedUris += uri
+        context.actorOf(Scanner.props(uri, responseTimeout, depth))
       }
 
-    case HttpResponse(statusCode, headers, entity, _) if statusCode.isRedirection =>
-      val locationString = headers.filter(_.is("location")).map(_.value).mkString
-      log.debug("""GET request {} was redirected with status "{}" to {}""", uri, statusCode, locationString)
-      val linkUriOption = worthToFollowUri(locationString, uri)
-      linkUriOption match {
-        case Some(linkUri) =>
-          context.parent ! CrawlerManager.ScanPage(linkUri, depth + 1)
-        case None => //Do not follow the link.
-      }
-      entity.dataBytes.runWith(Sink.ignore)
-      self ! PoisonPill
+    case f: PageScanned =>
+      scannedPages += f
+      println(f.format)
 
-    case HttpResponse(statusCode, _, entity, _) =>
-      log.debug("GET request {} was answered with error {}", uri, statusCode)
-      entity.dataBytes.runWith(Sink.ignore)
-      self ! PoisonPill
-
-    case ReceiveTimeout =>
-      log.debug("GET request {} was not answered within {} millis.", uri, elapsedMillis)
-      self ! PoisonPill
+    case PrintScanSummary =>
+      val endMillis = System.currentTimeMillis
+      val elapsedSeconds = roundToSeconds(endMillis - startMillis)
+      val summedUpSeconds = roundToSeconds(scannedPages.map(_.durationMillis).sum)
+      println(s"$line\nSummary: Scanned ${scannedPages.length} pages in $elapsedSeconds seconds (summedUp: $summedUpSeconds seconds).\n$line\n")
+      println("=======================Unprocessed Inbox commands:====================")
+      self ! PrintUnprocessedSummary
+      context become finishing
   }
 
-  private def elapsedMillis = System.currentTimeMillis() - startTime
+  /**Number of unprocessed messages encountered in the Inbox during the finishing phase.*/
+  private var unprocessedCount: Int = 0
+
+  def finishing: Receive = {
+    case PrintUnprocessedSummary =>
+      println(line)
+      println("All unprocessed inbox commands listed above.")
+      val unscannedPages = triedUris.toSet - (scannedPages.map(_.uri).toSet)
+      println(line)
+      println(s"Unscanned (not found | not completed) pages:")
+      println(line)
+      _terminate()
+    case x @ (_: ScanPage | _: PageScanned) =>
+      unprocessedCount += 1
+      println(s"$unprocessedCount. unprocessed: $x")
+  }
+
+  /**Rounds a millisecond value to the nearest second value.*/
+  private def roundToSeconds(millis: Long): Long = (millis + 500) / 1000
+
+  private def _terminate(): Unit = {
+    import scala.concurrent.duration._
+    import akka.http.scaladsl.Http
+    val system = context.system
+    val http = Http(system)
+    //Give the actor some time to terminate before terminating the actor system:
+    import system.dispatcher //as implicit ExecutionContext
+    system.scheduler.scheduleOnce(2.seconds) {
+      log.info("Going to shut down the system...")
+      http.shutdownAllConnectionPools()
+      system.terminate()
+    }
+    self ! PoisonPill
+  }
 
 }
