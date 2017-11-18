@@ -52,6 +52,10 @@ class ScannerTest extends JUnitSuite with Matchers {
       result shouldBe Some(Uri("http://spray.io/documentation/1.2.2/spray-can/"))
     }
     {
+      val result = Scanner.worthToFollowUri("http://kicker.de/images/logo-kicker.html", baseUri)
+      result shouldBe Some(Uri("http://kicker.de/images/logo-kicker.html"))
+    }
+    {
       val result = Scanner.worthToFollowUri("http://mediadb.kicker.de/special/facebook/images/logo-kicker.png", baseUri)
       result shouldBe None
     }
