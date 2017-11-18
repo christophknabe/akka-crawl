@@ -34,7 +34,7 @@ object Crawler {
 /**An actor, which manages many actors-per-request to crawl the whole web.*/
 class Crawler(responseTimeout: FiniteDuration) extends Actor with ActorLogging {
 
-  val line = "=" * 80
+  private val line = "=" * 80
 
   import Crawler._
 
@@ -78,9 +78,6 @@ class Crawler(responseTimeout: FiniteDuration) extends Actor with ActorLogging {
     case PrintUnprocessedSummary =>
       println(line)
       println("All unprocessed inbox commands listed above.")
-      val unscannedPages = triedUris.toSet - (scannedPages.map(_.uri).toSet)
-      println(line)
-      println(s"Unscanned (not found | not completed) pages:")
       println(line)
       _terminate()
     case x @ (_: ScanPage | _: PageScanned) =>
