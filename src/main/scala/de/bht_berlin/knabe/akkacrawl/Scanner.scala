@@ -74,6 +74,8 @@ class Scanner(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
 
   private val startTime = System.currentTimeMillis
 
+  private val parent = context.parent
+
   override def preStart(): Unit = {
     http.singleRequest(HttpRequest(uri = uri)).pipeTo(self)
     context.setReceiveTimeout(responseTimeout)
@@ -90,14 +92,14 @@ class Scanner(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
             val linkUriOption = worthToFollowUri(linkString, uri)
             linkUriOption match {
               case Some(linkUri) =>
-                context.parent ! Crawler.ScanPage(linkUri, depth + 1)
+                parent ! Crawler.ScanPage(linkUri, depth + 1)
               case None => //Do not follow the link.
             }
           }
       }.onComplete {
         case Success(done) =>
           //Source with data bytes read completely.
-          context.parent ! Crawler.PageScanned(elapsedMillis, uri, depth)
+          parent ! Crawler.PageScanned(elapsedMillis, uri, depth)
           self ! PoisonPill
         case Failure(t) =>
           log.error(t, "GET request {} dataBytes read completed with Failure", uri)
@@ -107,11 +109,8 @@ class Scanner(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
     case HttpResponse(statusCode, headers, entity, _) if statusCode.isRedirection =>
       val locationString = headers.filter(_.is("location")).map(_.value).mkString
       log.debug("""GET request {} was redirected with status "{}" to {}""", uri, statusCode, locationString)
-      val linkUriOption = worthToFollowUri(locationString, uri)
-      linkUriOption match {
-        case Some(linkUri) =>
-          context.parent ! Crawler.ScanPage(linkUri, depth + 1)
-        case None => //Do not follow the link.
+      worthToFollowUri(locationString, uri).foreach { linkUri =>
+        parent ! Crawler.ScanPage(linkUri, depth + 1)
       }
       entity.dataBytes.runWith(Sink.ignore)
       self ! PoisonPill
