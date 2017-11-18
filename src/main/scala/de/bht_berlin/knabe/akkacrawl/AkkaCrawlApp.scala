@@ -7,8 +7,10 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.io.StdIn
 
-/**Application to crawl the web and find as many working web page addresses as possible.
-  * Detailed documentation see in the README file of the project.*/
+/**
+ * Application to crawl the web and find as many working web page addresses as possible.
+ * Detailed documentation see in the README file of the project.
+ */
 object AkkaCrawlApp extends App {
 
   val uriArg = args.headOption.getOrElse("https://www.berlin.de/")
