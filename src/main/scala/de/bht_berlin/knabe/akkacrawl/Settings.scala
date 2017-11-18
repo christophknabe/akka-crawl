@@ -14,9 +14,3 @@ class Settings(system: ExtendedActorSystem) extends Extension {
   private def duration(key: String): FiniteDuration = Duration(config.getDuration(key, MILLISECONDS), MILLISECONDS)
 
 }
-
-trait ActorSettings {
-  this: Actor =>
-
-  val settings: Settings = Settings(context.system)
-}
