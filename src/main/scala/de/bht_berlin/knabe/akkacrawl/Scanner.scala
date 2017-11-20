@@ -1,15 +1,15 @@
 package de.bht_berlin.knabe.akkacrawl
 
-import akka.actor.{Actor, ActorLogging, PoisonPill, Props, ReceiveTimeout}
+import akka.actor.{ Actor, ActorLogging, PoisonPill, Props, ReceiveTimeout }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.model.Uri.Path.{Empty, Segment, Slash}
+import akka.http.scaladsl.model.Uri.Path.{ Empty, Segment, Slash }
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Sink
-import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
+import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
 
 import scala.concurrent.duration.FiniteDuration
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 object Scanner {
 
