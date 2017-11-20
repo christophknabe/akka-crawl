@@ -66,7 +66,7 @@ See more explanations in the [Presentation Slides](src/doc/discussion.pdf).
 ## TODO ##
 
 * Throttle the crawling, when the average scan times get longer and longer (more than 5 seconds)
-* Find out why scanning an individual page lasts longer and longer after about a minute of crawling. For example the first 10 pages need about 1 to 2 seconds each, whereas pages 350 to 359 need about 23 to 50 seconds each.
+* Find out why scanning an individual page at home lasts longer and longer after about a minute of crawling. For example the first 10 pages need about 1 to 2 seconds each, whereas pages 350 to 359 need about 23 to 50 seconds each.
 * Find out how to find the limiting factor (CPU, network, open ports, JVM-RAM, ...)
 * Find out how to use a purely streamed solution with backpressure.
 
