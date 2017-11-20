@@ -20,9 +20,9 @@ This code is open source software licensed under the [Apache 2.0 License]("http:
 
 ### Usage ###
 
-`sbt run` _uri_
+`sbt run` [_uri_]
 
-This will configure the given URI as the start point for crawling the web.
+This will configure the given URI or else [berlin.de](https://www.berlin.de/) as the start point for crawling the web.
 The program issues a prompt on the console. Once you press &lt;ENTER&gt;, it will crawl web pages and print all successfully scanned ones.
 
 When you press &lt;ENTER&gt; again, the program will stop and print a statistics message.
