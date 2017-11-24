@@ -1,15 +1,15 @@
 package de.bht_berlin.knabe.akkacrawl
 
-import akka.actor.{ Actor, ActorLogging, PoisonPill, Props, ReceiveTimeout }
+import akka.actor.{Actor, ActorLogging, PoisonPill, Props, ReceiveTimeout}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.model.Uri.Path.{ Empty, Segment, Slash }
+import akka.http.scaladsl.model.Uri.Path.{Empty, Segment, Slash}
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Sink
-import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
+import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
 
 import scala.concurrent.duration.FiniteDuration
-import scala.util.{ Failure, Success, Try }
+import scala.util.{Failure, Success, Try}
 
 object Scanner {
 
@@ -20,46 +20,46 @@ object Scanner {
     """href="([^"]*)"""".r
 
   /**
-   * Parses the uriString to a Uri.
-   *
-   * @return The parsed URI, resolved against the given baseUri, if it shows to a web page, which will probably contain more URIs. None otherwise or if an exception occured during parsing.
-   *         Any fragment indications by # and any query parameters introduced by ? will be stripped off the returned Uri.
-   */
+    * Parses the uriString to a Uri.
+    *
+    * @return The parsed URI, resolved against the given baseUri, if it shows to a web page, which will probably contain more URIs. None otherwise or if an exception occured during parsing.
+    *         Any fragment indications by # and any query parameters introduced by ? will be stripped off the returned Uri.
+    */
   def worthToFollowUri(uriString: String, baseUri: Uri): Option[Uri] =
     for {
       completeUri <- Try(Uri.parseAndResolve(uriString, baseUri)).toOption
-      resultUri = completeUri.copy(fragment       = None, rawQueryString = None)
+      resultUri = completeUri.copy(fragment = None, rawQueryString = None)
       if isSupportedScheme(resultUri.scheme)
       ext = extension(resultUri.path)
       if ext.toSet.subsetOf(worthyExtensions)
     } yield resultUri
 
   @scala.annotation.tailrec
-  private def extension(path: Path): Option[String] =
-    path match {
-      case Segment(_, Slash(tail))                    => extension(tail)
-      case Slash(tail)                                => extension(tail)
-      case Segment(head, Empty) if head.contains(".") => head.split('.').lastOption
-      case _                                          => None
-    }
+  private def extension(path: Path): Option[String] = path match {
+    case Segment(_, Slash(tail)) => extension(tail)
+    case Slash(tail) => extension(tail)
+    case Segment(head, Empty) if head.contains(".") => head.split('.').lastOption
+    case _ => None
+  }
 
   private val isSupportedScheme = Set("http", "https")
 
   private val worthyExtensions = Set("html", "shtml", "jsp", "asp", "php")
+
 }
 
 /**
- * Scans the page at the URI, which has the given link depth.
- * When the page will be successfully scanned, a PageScanned command will be sent to the Crawler actor.
- * If in the page it encounters href-s to URIs, corresponding ScanPage commands will be sent to the Crawler in order to scan them, too.
- *
- * @param uri address of the page to be scanned.
- * @param responseTimeout duration to wait for a HttpResponse before the page at the URI is considered as not retrievable.
- * @param depth the link depth counted from the start URI.
- */
+  * Scans the page at the URI, which has the given link depth.
+  * When the page will be successfully scanned, a PageScanned command will be sent to the Crawler actor.
+  * If in the page it encounters href-s to URIs, corresponding ScanPage commands will be sent to the Crawler in order to scan them, too.
+  *
+  * @param uri             address of the page to be scanned.
+  * @param responseTimeout duration to wait for a HttpResponse before the page at the URI is considered as not retrievable.
+  * @param depth           the link depth counted from the start URI.
+  */
 class Scanner(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
   extends Actor
-  with ActorLogging {
+    with ActorLogging {
 
   import Scanner._
   import akka.pattern.pipe
@@ -69,6 +69,7 @@ class Scanner(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
 
   private final implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(context.system))
 
+  //TODO Will this create too many Http instances? If yes, move to object! 17-11-23
   private val http = Http(context.system)
   log.debug("Scanner for {} created", uri)
 
@@ -78,6 +79,8 @@ class Scanner(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
 
   override def preStart(): Unit = {
     http.singleRequest(HttpRequest(uri = uri)).pipeTo(self)
+    //TODO Configure Http-Timeout. Better to react to Http-Timeout instead of ReceiveTimeout. 17-11-23
+    //TODO React to Failure message from pipeTo! 17-11-23
     context.setReceiveTimeout(responseTimeout)
   }
 
@@ -87,9 +90,11 @@ class Scanner(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
       context.setReceiveTimeout(Duration.Undefined)
       entity.dataBytes.runForeach {
         chunk =>
+          //TODO Solve risk of breaking a URI by distribution to 2 adjacent chunks. Would need some buffering. 17-11-23
           for (matched <- linkPattern.findAllMatchIn(chunk.utf8String)) {
             val linkString = matched.group(1)
             val linkUriOption = worthToFollowUri(linkString, uri)
+            //TODO Avoid explicit matching by using foreach on the Option. 17-11-23
             linkUriOption match {
               case Some(linkUri) =>
                 parent ! Crawler.ScanPage(linkUri, depth + 1)
