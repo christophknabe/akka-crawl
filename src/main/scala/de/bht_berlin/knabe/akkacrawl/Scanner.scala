@@ -94,11 +94,8 @@ class Scanner(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
           for (matched <- linkPattern.findAllMatchIn(chunk.utf8String)) {
             val linkString = matched.group(1)
             val linkUriOption = worthToFollowUri(linkString, uri)
-            //TODO Avoid explicit matching by using foreach on the Option. 17-11-23
-            linkUriOption match {
-              case Some(linkUri) =>
+            linkUriOption.foreach { linkUri =>
                 parent ! Crawler.ScanPage(linkUri, depth + 1)
-              case None => //Do not follow the link.
             }
           }
       }.onComplete {
