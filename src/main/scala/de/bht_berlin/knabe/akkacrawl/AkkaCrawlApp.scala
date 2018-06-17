@@ -20,10 +20,12 @@ object AkkaCrawlApp extends App {
   val settings = Settings(system)
   println(s"Click into this window and press <ENTER> to start crawling from $uri")
   StdIn.readLine()
+
   val crawler = system.actorOf(Crawler.props(settings.responseTimeout).withMailbox("stoppable-mailbox"), name = "crawler")
   crawler ! Crawler.ScanPage(uri, 0)
   println("Press <ENTER> to stop crawling and print statistics!")
   StdIn.readLine()
+
   crawler ! Crawler.PrintScanSummary
   Await.result(system.whenTerminated, Duration.Inf)
   println("==========ActorSystem terminated. Exiting AkkaCrawlApp.==========")

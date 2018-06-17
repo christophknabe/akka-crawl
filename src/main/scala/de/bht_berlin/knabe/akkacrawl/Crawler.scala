@@ -34,7 +34,7 @@ object Crawler {
 /**An actor, which manages many actors-per-request to crawl the whole web.*/
 class Crawler(responseTimeout: FiniteDuration) extends Actor with ActorLogging {
 
-  val line = "=" * 80
+  private val line = "=" * 80
 
   import Crawler._
 
