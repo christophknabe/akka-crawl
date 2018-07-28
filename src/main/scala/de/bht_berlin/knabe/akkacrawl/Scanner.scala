@@ -1,15 +1,16 @@
 package de.bht_berlin.knabe.akkacrawl
 
-import akka.actor.{ Actor, ActorLogging, PoisonPill, Props, ReceiveTimeout }
+import akka.actor.{Actor, ActorLogging, PoisonPill, Props, ReceiveTimeout, Status}
+import akka.event.Logging
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.model.Uri.Path.{ Empty, Segment, Slash }
+import akka.http.scaladsl.model.Uri.Path.{Empty, Segment, Slash}
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Sink
-import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
+import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
 
 import scala.concurrent.duration.FiniteDuration
-import scala.util.{ Failure, Success, Try }
+import scala.util.{Failure, Success, Try}
 
 object Scanner {
 
@@ -71,6 +72,7 @@ class Scanner(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
 
   import scala.concurrent.duration._
 
+  //TODO Create the ActorMaterializer only once and share it. 2018-07-28. See https://github.com/akka/akka/issues/18797#issuecomment-157888432
   private final implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(context.system))
 
   //TODO Will this create too many Http instances? If yes, move to object! 17-11-23
@@ -122,15 +124,29 @@ class Scanner(uri: Uri, responseTimeout: FiniteDuration, depth: Int)
       self ! PoisonPill
 
     case HttpResponse(statusCode, _, entity, _) =>
-      log.debug("GET request {} was answered with error {}", uri, statusCode)
+      log.log(_level(depth), "GET request {} was answered with error {}", uri, statusCode)
       entity.dataBytes.runWith(Sink.ignore)
       self ! PoisonPill
 
     case ReceiveTimeout =>
-      log.debug("GET request {} was not answered within {} millis.", uri, elapsedMillis)
+      log.log(_level(depth), "GET request {} was not answered within {} millis.", uri, elapsedMillis)
+      self ! PoisonPill
+
+    case Status.Failure(t) =>
+      if(depth<=0) {
+        log.error(t,"GET request {} completed with following failure", uri)
+      }else{
+        log.debug("GET request {} completed with following failure:\n{}", uri, t)
+      }
+      self ! PoisonPill
+
+    case unexpected =>
+      log.error("GET request {} completed with unexpected {}", uri, unexpected)
       self ! PoisonPill
   }
 
   private def elapsedMillis = System.currentTimeMillis() - startTime
+
+  private def _level(depth: Int): Logging.LogLevel = if(depth>0) Logging.DebugLevel else Logging.ErrorLevel
 
 }

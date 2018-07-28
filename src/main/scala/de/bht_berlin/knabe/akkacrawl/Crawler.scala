@@ -44,14 +44,14 @@ class Crawler(responseTimeout: FiniteDuration) extends Actor with ActorLogging {
   /**A memory about all web pages, which have been found and successfully scanned for further URIs.*/
   private val scannedPages = new ArrayBuffer[PageScanned]()
 
-  log.debug(s"Crawler Manager created with responseTimeout $responseTimeout.")
+  log.debug(s"Crawler created with responseTimeout $responseTimeout.")
   println("Successfully Scanned Pages:\n==========================\n\nLvl Duratn URI\n=== ====== ===")
 
   private val startMillis: Long = System.currentTimeMillis
 
   override def receive: Receive = {
     case ScanPage(uri: Uri, depth: Int) =>
-      log.debug("Crawler Manager queried for {} at depth {}.", uri, depth)
+      log.debug("Crawler queried for {} at depth {}.", uri, depth)
       if (!triedUris.contains(uri)) {
         triedUris += uri
         context.actorOf(Scanner.props(uri, responseTimeout, depth))
@@ -69,6 +69,10 @@ class Crawler(responseTimeout: FiniteDuration) extends Actor with ActorLogging {
       println("=======================Unprocessed Inbox commands:====================")
       self ! PrintUnprocessedSummary
       context become finishing
+
+    case unexpected =>
+      log.error("Unexpected {}", unexpected)
+      self ! PrintScanSummary
   }
 
   /**Number of unprocessed messages encountered in the Inbox during the finishing phase.*/
@@ -78,7 +82,7 @@ class Crawler(responseTimeout: FiniteDuration) extends Actor with ActorLogging {
     case PrintUnprocessedSummary =>
       println(line)
       println("All unprocessed inbox commands listed above.")
-      val unscannedPages = triedUris.toSet - (scannedPages.map(_.uri).toSet)
+      val unscannedPages = triedUris.toSet -- (scannedPages.map(_.uri).toSet)
       println(line)
       println(s"Unscanned (not found | not completed) pages:")
       println(line)
