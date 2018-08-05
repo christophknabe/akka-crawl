@@ -1,8 +1,8 @@
 package de.bht_berlin.knabe.akkacrawl
 
 import akka.http.scaladsl.model.Uri
-import akka.actor.{Actor, ActorLogging, PoisonPill, Props}
-import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
+import akka.actor.{ Actor, ActorLogging, PoisonPill, Props }
+import akka.stream.{ ActorMaterializer, ActorMaterializerSettings, Materializer }
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.FiniteDuration
@@ -73,23 +73,23 @@ class Crawler(responseTimeout: FiniteDuration) extends Actor with ActorLogging {
       println(s"$line\nSummary: Scanned ${scannedPages.length} pages in $elapsedSeconds seconds (summedUp: $summedUpSeconds seconds).\n$line\n")
       println("=======================Unprocessed Inbox commands:====================")
       self ! ShutdownIfResponsible
-      context become finishing
+      context become smoothShutDown
 
     case unexpected =>
       log.error("Unexpected {}", unexpected)
       self ! PrintScanSummary
   }
 
-  /**Number of unprocessed messages encountered in the Inbox during the finishing phase.*/
+  /**Number of unprocessed messages encountered in the Inbox during the smoothShutDown phase.*/
   private var unprocessedCount: Int = 0
 
-  def finishing: Receive = {
+  def smoothShutDown: Receive = {
     case ShutdownIfResponsible =>
       println(line)
       val secondsSinceLastCommand = roundToSeconds(System.currentTimeMillis - lastCommandReceivedMillis)
-      if(secondsSinceLastCommand > 5){
+      if (secondsSinceLastCommand > 5) {
         _terminate()
-      }else{
+      } else {
         import scala.concurrent.duration._
         context.system.scheduler.scheduleOnce(5.seconds, self, ShutdownIfResponsible)(context.dispatcher, self)
       }

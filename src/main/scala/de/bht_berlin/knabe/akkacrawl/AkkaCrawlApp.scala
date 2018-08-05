@@ -1,6 +1,6 @@
 package de.bht_berlin.knabe.akkacrawl
 
-import java.net.{URL, URLConnection}
+import java.net.{ URL, URLConnection }
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
@@ -40,7 +40,7 @@ object AkkaCrawlApp extends App {
     val properties = System.getProperties.entrySet
     import scala.collection.JavaConverters._
     val entries = properties.asScala.toList.sortBy(_.getKey.toString)
-    for(e <- entries){
+    for (e <- entries) {
       println(e)
     }
   }
@@ -48,13 +48,13 @@ object AkkaCrawlApp extends App {
   /**Set the Oracle default trust store password, if https access does not work. See https://github.com/ChristophKnabe/tool-instruction/blob/master/maven-trustAnchors-problem.md*/
   private def _adjustTrustStorePassword(uriArg: String): Unit = {
     val url = new URL(uriArg)
-    if(url.getProtocol.equals("http")){ //unsecure
-      return; //Does not need trustStore access.
+    if (url.getProtocol.equals("http")) { //unsecure
+      return ; //Does not need trustStore access.
     }
     val con: URLConnection = url.openConnection
-    try{
+    try {
       con.connect()
-    }catch{
+    } catch {
       case ssle: SSLException if ssle.getMessage == "java.lang.RuntimeException: Unexpected error: java.security.InvalidAlgorithmParameterException: the trustAnchors parameter must be non-empty" =>
         System.setProperty("javax.net.ssl.trustStorePassword", "changeit")
       //Now https access should work!
