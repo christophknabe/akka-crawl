@@ -14,5 +14,6 @@ object Library {
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % Version.akka
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % Version.akka
   val logbackClassic = "ch.qos.logback" % "logback-classic" % Version.logback
+  val slf4jJdk14 = "org.slf4j" % "slf4j-jdk14" % "1.7.26" // java.util.logging works mostly out-of-the-box with SubstrateVM
   val scalaTest = "org.scalatest" %% "scalatest" % Version.scalaTest
 }
