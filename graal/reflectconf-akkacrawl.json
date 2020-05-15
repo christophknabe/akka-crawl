@@ -1,0 +1,7 @@
+[
+  {
+    "name": "akka.dispatch.UnboundedControlAwareMailbox",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  }
+]

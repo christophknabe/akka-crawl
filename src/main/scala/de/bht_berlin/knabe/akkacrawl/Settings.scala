@@ -1,11 +1,12 @@
 package de.bht_berlin.knabe.akkacrawl
 
-import akka.actor.{ Actor, ExtendedActorSystem, Extension, ExtensionKey }
+import akka.actor.{ Actor, ActorSystem, ExtendedActorSystem, Extension, ExtensionKey }
+
 import scala.concurrent.duration.{ Duration, FiniteDuration, MILLISECONDS }
 
-object Settings extends ExtensionKey[Settings]
+//object Settings extends ExtensionKey[Settings]
 
-class Settings(system: ExtendedActorSystem) extends Extension {
+class Settings(system: /*Extended*/ ActorSystem) /*extends Extension*/ {
 
   val responseTimeout: FiniteDuration = duration("response-timeout")
 

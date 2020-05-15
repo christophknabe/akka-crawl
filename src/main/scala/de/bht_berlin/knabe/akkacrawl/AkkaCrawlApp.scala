@@ -23,7 +23,7 @@ object AkkaCrawlApp {
     _adjustTrustStorePassword(uriArg)
 
     val system = ActorSystem("akka-crawl")
-    val settings = Settings(system)
+    val settings = new Settings(system)
     //_printSystemProperties()
     println(s"Click into this window and press <ENTER> to start crawling from $uri")
     StdIn.readLine()
